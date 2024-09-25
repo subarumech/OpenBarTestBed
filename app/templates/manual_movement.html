@@ -22,8 +22,10 @@
     </div>
     <div id="positionControl" class="slider-container" style="display: none;">
         <label for="positionSlider">Position:</label>
-        <input type="range" id="positionSlider" min="0" max="2000" value="0">
-        <span id="positionValue" class="slider-value">0</span>
+        <div class="slider-wrapper">
+            <input type="range" id="positionSlider" min="0" max="2000" value="0">
+            <span id="positionValue" class="slider-value">0</span>
+        </div>
     </div>
     <div id="controlButtons">
         <div id="freeModeButtons" style="display: flex; justify-content: space-between;">
@@ -70,13 +72,26 @@
         let isPositionSliderBeingDragged = false;
         let positionSliderTimeout;
         let isActivated = false;
+        let isUserInteracting = false;  // New flag to track user interaction
 
         positionSlider.addEventListener('mousedown', () => {
             isPositionSliderBeingDragged = true;
+            isUserInteracting = true;
         });
 
         positionSlider.addEventListener('mouseup', () => {
             isPositionSliderBeingDragged = false;
+            setTimeout(() => { isUserInteracting = false; }, 100);  // Short delay before allowing updates
+        });
+
+        positionSlider.addEventListener('touchstart', () => {
+            isPositionSliderBeingDragged = true;
+            isUserInteracting = true;
+        });
+
+        positionSlider.addEventListener('touchend', () => {
+            isPositionSliderBeingDragged = false;
+            setTimeout(() => { isUserInteracting = false; }, 100);  // Short delay before allowing updates
         });
 
         positionSlider.addEventListener('input', () => {
@@ -144,15 +159,17 @@
         });
 
         function updatePosition() {
-            fetch(`${API_URL}/get_position`)
-                .then(response => response.json())
-                .then(data => {
-                    positionStatus.textContent = `Position: ${data.position}`;
-                    if (!isPositionSliderBeingDragged) {
-                        positionSlider.value = data.position;
-                        positionValue.textContent = data.position;
-                    }
-                });
+            if (!isUserInteracting) {  // Only update if the user is not interacting
+                fetch(`${API_URL}/get_position`)
+                    .then(response => response.json())
+                    .then(data => {
+                        positionStatus.textContent = `Position: ${data.position}`;
+                        if (!isPositionSliderBeingDragged) {
+                            positionSlider.value = data.position;
+                            positionValue.textContent = data.position;
+                        }
+                    });
+            }
         }
 
         function updateHomedStatus() {
@@ -272,5 +289,63 @@
 
         // Call updateButtonStates initially to set the correct state
         updateButtonStates();
+
+        function handleSlider(slider, valueDisplay, updateFunction) {
+            let isDragging = false;
+
+            function updateSliderValue(event) {
+                const rect = slider.getBoundingClientRect();
+                const x = event.clientX || (event.touches && event.touches[0].clientX);
+                const percentage = (x - rect.left) / rect.width;
+                const newValue = Math.round(percentage * (slider.max - slider.min) + parseInt(slider.min));
+                slider.value = Math.max(slider.min, Math.min(slider.max, newValue));
+                valueDisplay.textContent = slider.value + (slider.id === 'speed' ? '%' : '');
+                if (updateFunction) updateFunction();
+            }
+
+            slider.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                updateSliderValue(e);
+            });
+
+            slider.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                updateSliderValue(e);
+                e.preventDefault(); // Prevent scrolling
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) updateSliderValue(e);
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (isDragging) {
+                    updateSliderValue(e);
+                    e.preventDefault(); // Prevent scrolling
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    if (updateFunction) updateFunction();
+                }
+            });
+
+            document.addEventListener('touchend', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    if (updateFunction) updateFunction();
+                }
+            });
+        }
+
+        handleSlider(speed, speedValue, updateSpeed);
+        handleSlider(positionSlider, positionValue, () => {
+            clearTimeout(positionSliderTimeout);
+            positionSliderTimeout = setTimeout(() => {
+                goToPosition(parseInt(positionSlider.value));
+            }, 50);
+        });
     </script>
 {% endblock %}
