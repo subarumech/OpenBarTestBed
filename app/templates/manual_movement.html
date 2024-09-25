@@ -5,9 +5,6 @@
 {% block extra_head %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-    <style>
-        /* Add your specific styles for manual_movement.html here */
-    </style>
 {% endblock %}
 
 {% block content %}
@@ -19,8 +16,10 @@
         </div>
         <div id="speedControl" class="slider-container">
             <label for="speed">Speed:</label>
-            <input type="range" id="speed" min="0" max="100" value="0">
-            <span id="speedValue" class="slider-value">0%</span>
+            <div class="slider-wrapper">
+                <input type="range" id="speed" min="0" max="100" value="0">
+                <span id="speedValue" class="slider-value">0%</span>
+            </div>
         </div>
         <div id="positionControl" class="slider-container" style="display: none;">
             <label for="positionSlider">Position:</label>
@@ -166,7 +165,7 @@
                 });
         }
 
-        setInterval(updatePosition, 100);
+        setInterval(updatePosition, 50);
         setInterval(updateHomedStatus, 1000);
 
         socket.on('motor_status', (data) => {
@@ -234,45 +233,44 @@
 
         updateSpeed();
 
-        leftButton.addEventListener('mousedown', () => {
+        function startMotor(direction) {
             if (isActivated) {
                 fetch(`${API_URL}/start_direction`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({direction: 'left'})
+                    body: JSON.stringify({direction: direction})
                 })
                 .then(response => response.json())
-                .then(data => status.textContent = 'Status: Motor running left');
+                .then(data => status.textContent = `Status: Motor running ${direction}`);
             }
-        });
+        }
 
-        leftButton.addEventListener('mouseup', () => {
+        function stopMotor() {
             if (isActivated) {
                 fetch(`${API_URL}/stop`, {method: 'POST'})
                     .then(response => response.json())
                     .then(data => status.textContent = 'Status: Motor stopped');
             }
-        });
+        }
 
-        rightButton.addEventListener('mousedown', () => {
-            if (isActivated) {
-                fetch(`${API_URL}/start_direction`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({direction: 'right'})
-                })
-                .then(response => response.json())
-                .then(data => status.textContent = 'Status: Motor running right');
-            }
-        });
+        function addTouchAndMouseEvents(button, direction) {
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();  // Prevent default touch behavior
+                startMotor(direction);
+            });
 
-        rightButton.addEventListener('mouseup', () => {
-            if (isActivated) {
-                fetch(`${API_URL}/stop`, {method: 'POST'})
-                    .then(response => response.json())
-                    .then(data => status.textContent = 'Status: Motor stopped');
-            }
-        });
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();  // Prevent default touch behavior
+                stopMotor();
+            });
+
+            button.addEventListener('mousedown', () => startMotor(direction));
+            button.addEventListener('mouseup', stopMotor);
+            button.addEventListener('mouseleave', stopMotor);  // Stop if mouse leaves button while pressed
+        }
+
+        addTouchAndMouseEvents(leftButton, 'left');
+        addTouchAndMouseEvents(rightButton, 'right');
 
         // Call updateButtonStates initially to set the correct state
         updateButtonStates();
