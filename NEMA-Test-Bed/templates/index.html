@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motor Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2c2c2c;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #3c3c3c;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input {
+            margin: 10px 0;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4c4c4c;
+            color: white;
+        }
+        button {
+            margin: 10px 0;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: white;
+            color: #2c2c2c;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #e0e0e0;
+        }
+        #status {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .slider-value {
+            margin-left: 10px;
+            width: 60px;
+            text-align: right;
+        }
+        #speedValue {
+            margin-left: 10px;
+            width: 40px;
+            text-align: right;
+        }
+        #limitSwitchStatus {
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .triggered {
+            color: red;
+        }
+        .not-triggered {
+            color: green;
+        }
+        .mode-select {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .mode-button {
+            width: 48%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: white;
+            color: #2c2c2c;
+            transition: background-color 0.3s;
+        }
+        .mode-button.active {
+            background-color: #808080;
+            color: white;
+        }
+        .mode-button:disabled {
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
+        #stop.active {
+            background-color: #ff4444;
+            color: white;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Motor Control</h1>
+        <div class="mode-select">
+            <button id="freeMode" class="mode-button active">Free Mode</button>
+            <button id="positionMode" class="mode-button">Position Mode</button>
+        </div>
+        <div id="speedControl" class="slider-container">
+            <label for="speed">Speed:</label>
+            <input type="range" id="speed" min="0" max="100" value="0">
+            <span id="speedValue" class="slider-value">0%</span>
+        </div>
+        <div id="positionControl" class="slider-container" style="display: none;">
+            <label for="positionSlider">Position:</label>
+            <input type="range" id="positionSlider" min="0" max="2000" value="0">
+            <span id="positionValue" class="slider-value">0</span>
+        </div>
+        <div id="controlButtons">
+            <div id="freeModeButtons" style="display: flex; justify-content: space-between;">
+                <button id="leftButton" class="mode-button" style="width: 48%;">Left</button>
+                <button id="rightButton" class="mode-button" style="width: 48%;">Right</button>
+            </div>
+            <div id="startStopButtons" style="display: flex; justify-content: space-between; margin-top: 10px;">
+                <button id="start" style="width: 48%;">Start</button>
+                <button id="stop" style="width: 48%;">Stop</button>
+            </div>
+            <button id="home">Home</button>
+            <button id="resetLimitSwitch">Reset Limit Switch</button>
+        </div>
+        <div id="status">Status: Stopped</div>
+        <div id="limitSwitchStatus">Limit Switch: Not Triggered</div>
+        <div id="positionStatus">Position: 0</div>
+        <div id="homedStatus">Homed: No</div>
+    </div>
+
+    <script>
+        const API_URL = '';
+        const socket = io();
+        const speed = document.getElementById('speed');
+        const speedValue = document.getElementById('speedValue');
+        const positionSlider = document.getElementById('positionSlider');
+        const positionValue = document.getElementById('positionValue');
+        const start = document.getElementById('start');
+        const stop = document.getElementById('stop');
+        const resetLimitSwitch = document.getElementById('resetLimitSwitch');
+        const status = document.getElementById('status');
+        const limitSwitchStatus = document.getElementById('limitSwitchStatus');
+        const positionStatus = document.getElementById('positionStatus');
+        const homedStatus = document.getElementById('homedStatus');
+        const home = document.getElementById('home');
+        const freeMode = document.getElementById('freeMode');
+        const positionMode = document.getElementById('positionMode');
+        const positionControl = document.getElementById('positionControl');
+        const leftButton = document.getElementById('leftButton');
+        const rightButton = document.getElementById('rightButton');
+        const freeModeButtons = document.getElementById('freeModeButtons');
+        const startStopButtons = document.getElementById('startStopButtons');
+
+        let isPositionSliderBeingDragged = false;
+        let positionSliderTimeout;
+        let isActivated = false;
+
+        positionSlider.addEventListener('mousedown', () => {
+            isPositionSliderBeingDragged = true;
+        });
+
+        positionSlider.addEventListener('mouseup', () => {
+            isPositionSliderBeingDragged = false;
+        });
+
+        positionSlider.addEventListener('input', () => {
+            positionValue.textContent = positionSlider.value;
+            clearTimeout(positionSliderTimeout);
+        });
+
+        positionSlider.addEventListener('change', () => {
+            clearTimeout(positionSliderTimeout);
+            positionSliderTimeout = setTimeout(() => {
+                const targetPosition = parseInt(positionSlider.value);
+                goToPosition(targetPosition);
+            }, 50);  // Small delay to ensure the value has settled
+        });
+
+        function goToPosition(targetPosition) {
+            fetch(`${API_URL}/go_to_position`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({position: targetPosition})
+            }).then(response => response.json())
+              .then(data => status.textContent = `Status: Moving to position ${targetPosition}`);
+        }
+
+        function updateButtonStates() {
+            leftButton.disabled = !isActivated;
+            rightButton.disabled = !isActivated;
+            start.disabled = isActivated;
+            stop.classList.toggle('active', isActivated);
+        }
+
+        start.addEventListener('click', () => {
+            fetch(`${API_URL}/activate`, {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    isActivated = true;
+                    status.textContent = 'Status: System Activated';
+                    updateButtonStates();
+                });
+        });
+
+        stop.addEventListener('click', () => {
+            fetch(`${API_URL}/deactivate`, {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    isActivated = false;
+                    status.textContent = 'Status: System Deactivated';
+                    updateButtonStates();
+                });
+        });
+
+        resetLimitSwitch.addEventListener('click', () => {
+            fetch(`${API_URL}/reset_limit_switch`, {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    limitSwitchStatus.textContent = 'Limit Switch: Not Triggered';
+                    limitSwitchStatus.className = 'not-triggered';
+                });
+        });
+
+        home.addEventListener('click', () => {
+            fetch(`${API_URL}/home`, {method: 'POST'})
+                .then(response => response.json())
+                .then(data => status.textContent = 'Status: Homing');
+        });
+
+        function updatePosition() {
+            fetch(`${API_URL}/get_position`)
+                .then(response => response.json())
+                .then(data => {
+                    positionStatus.textContent = `Position: ${data.position}`;
+                    if (!isPositionSliderBeingDragged) {
+                        positionSlider.value = data.position;
+                        positionValue.textContent = data.position;
+                    }
+                });
+        }
+
+        function updateHomedStatus() {
+            fetch(`${API_URL}/is_homed`)
+                .then(response => response.json())
+                .then(data => {
+                    homedStatus.textContent = `Homed: ${data.is_homed ? 'Yes' : 'No'}`;
+                });
+        }
+
+        // Update position and homed status every second
+        setInterval(() => {
+            updatePosition();
+            updateHomedStatus();
+        }, 1000);
+
+        socket.on('motor_status', (data) => {
+            if (data.status === 'stopped') {
+                if (data.reason === 'limit_switch') {
+                    status.textContent = 'Status: Motor stopped (Limit Switch Triggered)';
+                    limitSwitchStatus.textContent = 'Limit Switch: Triggered';
+                    limitSwitchStatus.className = 'triggered';
+                } else {
+                    status.textContent = 'Status: Motor stopped';
+                }
+            } else if (data.status === 'running') {
+                status.textContent = 'Status: Motor running';
+            } else if (data.status === 'homed') {
+                status.textContent = 'Status: Motor homed';
+                updatePosition();
+                updateHomedStatus();
+            }
+        });
+
+        freeMode.addEventListener('click', () => setMode('free'));
+        positionMode.addEventListener('click', () => setMode('position'));
+
+        function setMode(mode) {
+            if (mode === 'free') {
+                freeMode.classList.add('active');
+                positionMode.classList.remove('active');
+                positionControl.style.display = 'none';
+                freeModeButtons.style.display = 'flex';
+                startStopButtons.style.display = 'flex';
+                start.style.display = 'block';
+                start.style.width = '48%';
+                stop.style.width = '48%';
+            } else {
+                freeMode.classList.remove('active');
+                positionMode.classList.add('active');
+                positionControl.style.display = 'flex';
+                freeModeButtons.style.display = 'none';
+                startStopButtons.style.display = 'block';
+                start.style.display = 'none';
+                stop.style.width = '100%';
+            }
+        }
+
+        const speedDisplay = document.getElementById('speedValue');
+
+        speed.addEventListener('input', () => {
+            const speedValue = parseInt(speed.value);
+            speedDisplay.textContent = `${speedValue}%`;
+            fetch(`${API_URL}/set_speed`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({speed: speedValue})
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.status === 'success') {
+                      console.log(`Speed updated to ${speedValue}%`);
+                  } else {
+                      console.error('Failed to update speed');
+                  }
+              });
+        });
+
+        leftButton.addEventListener('mousedown', () => {
+            if (isActivated) {
+                fetch(`${API_URL}/start_direction`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({direction: 'left'})
+                })
+                .then(response => response.json())
+                .then(data => status.textContent = 'Status: Motor running left');
+            }
+        });
+
+        leftButton.addEventListener('mouseup', () => {
+            if (isActivated) {
+                fetch(`${API_URL}/stop`, {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => status.textContent = 'Status: Motor stopped');
+            }
+        });
+
+        rightButton.addEventListener('mousedown', () => {
+            if (isActivated) {
+                fetch(`${API_URL}/start_direction`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({direction: 'right'})
+                })
+                .then(response => response.json())
+                .then(data => status.textContent = 'Status: Motor running right');
+            }
+        });
+
+        rightButton.addEventListener('mouseup', () => {
+            if (isActivated) {
+                fetch(`${API_URL}/stop`, {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => status.textContent = 'Status: Motor stopped');
+            }
+        });
+
+        // Call updateButtonStates initially to set the correct state
+        updateButtonStates();
+    </script>
+</body>
+</html>
