@@ -2,20 +2,40 @@ body {
     font-family: Arial, sans-serif;
     background: linear-gradient(135deg, #0a0a0a, #2a0830, #4a004b);
     color: white;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+}
+
+.page-wrapper {
+    width: 100%;
+    max-width: 300px;
+    padding: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     min-height: 100vh;
-    margin: 0;
 }
 
 .container {
+    width: 100%;
+    max-width: 300px;
     background-color: rgba(60, 60, 60, 0);
-    padding: 30px;
+    padding: 20px;
     border-radius: 10px;
     box-shadow: none;
-    max-width: 300px;
+    box-sizing: border-box;
+}
+
+/* Add this new rule to handle nested containers */
+.container .container {
+    padding: 0;
     width: 100%;
 }
 
@@ -153,3 +173,45 @@ input[type="range"] {
 #stop.active {
     background-color: rgba(255, 68, 68, 0.5);
 }
+
+/* Add this new style to ensure content is centered */
+@media (max-width: 340px) {
+    .container {
+        padding: 20px 10px;
+    }
+}
+
+/* Update media queries */
+@media (min-width: 340px) {
+    .page-wrapper,
+    .container {
+        width: 300px;
+    }
+}
+
+/* Add this at the end of your existing CSS */
+
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px 15px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 16px;
+    z-index: 1000;
+    transition: background-color 0.3s;
+}
+
+.back-button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Adjust the page wrapper to account for the back button */
+.page-wrapper {
+    padding-top: 60px; /* Add some top padding to prevent content from being hidden behind the back button */
+}
+
+/* ... rest of your CSS remains the same ... */

@@ -8,41 +8,39 @@
 {% endblock %}
 
 {% block content %}
-    <div class="container">
-        <h1>Motor Control</h1>
-        <div class="mode-select">
-            <button id="freeMode" class="mode-button active">Free Mode</button>
-            <button id="positionMode" class="mode-button">Position Mode</button>
-        </div>
-        <div id="speedControl" class="slider-container">
-            <label for="speed">Speed:</label>
-            <div class="slider-wrapper">
-                <input type="range" id="speed" min="0" max="100" value="0">
-                <span id="speedValue" class="slider-value">0%</span>
-            </div>
-        </div>
-        <div id="positionControl" class="slider-container" style="display: none;">
-            <label for="positionSlider">Position:</label>
-            <input type="range" id="positionSlider" min="0" max="2000" value="0">
-            <span id="positionValue" class="slider-value">0</span>
-        </div>
-        <div id="controlButtons">
-            <div id="freeModeButtons" style="display: flex; justify-content: space-between;">
-                <button id="leftButton" class="mode-button" style="width: 48%;">Left</button>
-                <button id="rightButton" class="mode-button" style="width: 48%;">Right</button>
-            </div>
-            <div id="startStopButtons" style="display: flex; justify-content: space-between; margin-top: 10px;">
-                <button id="start" style="width: 48%;">Start</button>
-                <button id="stop" style="width: 48%;">Stop</button>
-            </div>
-            <button id="home">Home</button>
-            <button id="resetLimitSwitch">Reset Limit Switch</button>
-        </div>
-        <div id="status">Status: Stopped</div>
-        <div id="limitSwitchStatus">Limit Switch: Not Triggered</div>
-        <div id="positionStatus">Position: 0</div>
-        <div id="homedStatus">Homed: No</div>
+    <h1>Motor Control</h1>
+    <div class="mode-select">
+        <button id="freeMode" class="mode-button active">Free Mode</button>
+        <button id="positionMode" class="mode-button">Position Mode</button>
     </div>
+    <div id="speedControl" class="slider-container">
+        <label for="speed">Speed:</label>
+        <div class="slider-wrapper">
+            <input type="range" id="speed" min="0" max="100" value="0">
+            <span id="speedValue" class="slider-value">0%</span>
+        </div>
+    </div>
+    <div id="positionControl" class="slider-container" style="display: none;">
+        <label for="positionSlider">Position:</label>
+        <input type="range" id="positionSlider" min="0" max="2000" value="0">
+        <span id="positionValue" class="slider-value">0</span>
+    </div>
+    <div id="controlButtons">
+        <div id="freeModeButtons" style="display: flex; justify-content: space-between;">
+            <button id="leftButton" class="mode-button" style="width: 48%;">Left</button>
+            <button id="rightButton" class="mode-button" style="width: 48%;">Right</button>
+        </div>
+        <div id="startStopButtons" style="display: flex; justify-content: space-between; margin-top: 10px;">
+            <button id="start" style="width: 48%;">Start</button>
+            <button id="stop" style="width: 48%;">Stop</button>
+        </div>
+        <button id="home">Home</button>
+        <button id="resetLimitSwitch">Reset Limit Switch</button>
+    </div>
+    <div id="status">Status: Stopped</div>
+    <div id="limitSwitchStatus">Limit Switch: Not Triggered</div>
+    <div id="positionStatus">Position: 0</div>
+    <div id="homedStatus">Homed: No</div>
 {% endblock %}
 
 {% block scripts %}
