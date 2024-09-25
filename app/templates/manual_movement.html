@@ -1,128 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Motor Control</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a, #2a0830, #4a004b);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: rgba(60, 60, 60, 0);
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: none;
-            max-width: 300px;
-            width: 100%;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        input {
-            margin: 10px 0;
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background-color: #4c4c4c;
-            color: white;
-        }
-        button {
-            margin: 10px 0;
-            width: 100%;
-            padding: 10px;
-            border: 2px solid white;
-            border-radius: 5px;
-            cursor: pointer;
-            background-color: transparent;
-            color: white;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        #status {
-            margin-top: 20px;
-            text-align: center;
-            font-weight: bold;
-        }
-        .slider-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .slider-value {
-            margin-left: 10px;
-            width: 60px;
-            text-align: right;
-        }
-        #speedValue {
-            margin-left: 10px;
-            width: 40px;
-            text-align: right;
-        }
-        #limitSwitchStatus {
-            margin-top: 10px;
-            text-align: center;
-            font-weight: bold;
-        }
-        .triggered {
-            color: red;
-        }
-        .not-triggered {
-            color: green;
-        }
-        .mode-select {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .mode-button {
-            width: 48%;
-            padding: 10px;
-            border: 2px solid white;
-            border-radius: 5px;
-            cursor: pointer;
-            background-color: transparent;
-            color: white;
-            transition: background-color 0.3s;
-        }
-        .mode-button.active {
-            background-color: rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-        .mode-button:disabled {
-            border-color: #cccccc;
-            color: #cccccc;
-            cursor: not-allowed;
-        }
-        #stop.active {
-            background-color: rgba(255, 68, 68, 0.5);
-            color: white;
-        }
+{% extends "base.html" %}
 
-        .custom-slider, #textS, .knob {
-            display: none;
-        }
+{% block title %}Manual Movement{% endblock %}
 
-        input[type="range"] {
-            width: 100%;
-            margin: 10px 0;
-        }
-    </style>
+{% block extra_head %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-</head>
-<body>
+    <style>
+        /* Add your specific styles for manual_movement.html here */
+    </style>
+{% endblock %}
+
+{% block content %}
     <div class="container">
         <h1>Motor Control</h1>
         <div class="mode-select">
@@ -156,7 +44,9 @@
         <div id="positionStatus">Position: 0</div>
         <div id="homedStatus">Homed: No</div>
     </div>
+{% endblock %}
 
+{% block scripts %}
     <script>
         const API_URL = '';
         const socket = io();
@@ -387,5 +277,4 @@
         // Call updateButtonStates initially to set the correct state
         updateButtonStates();
     </script>
-</body>
-</html>
+{% endblock %}

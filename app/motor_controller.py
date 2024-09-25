@@ -160,7 +160,7 @@ class MotorController:
         steps_per_revolution = 200
         microstep = 2
         homing_speed = 20  # Adjust this value to set homing speed
-        back_off_steps = 100  # Number of steps to back off after hitting the limit switch
+        back_off_steps = 50  # Number of steps to back off after hitting the limit switch
 
         # Move towards limit switch
         while self.running and not self.limit_switch_triggered:

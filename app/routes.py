@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, render_template
 from flask_socketio import SocketIO
-from motor_controller import MotorController
+from motor_controller import MotorController  # Remove 'app.' from here
 import logging
 import atexit
 import signal
@@ -30,10 +30,18 @@ cleanup_done = False
 def index():
     return render_template('index.html', cache_timeout=0)
 
+@app.route('/manual_movement')
+def manual_movement():
+    return render_template('manual_movement.html')
+
+@app.route('/manual_pouring')
+def manual_pouring():
+    return render_template('manual_pouring.html')
+
 @app.route('/set_speed', methods=['POST'])
 def set_speed():
     speed = request.json['speed']
-    app_logger.info(f"Setting speed to {speed}")
+    logger.info(f"Setting speed to {speed}")
     motor_controller.set_speed(speed)
     return jsonify({"status": "success"})
 
