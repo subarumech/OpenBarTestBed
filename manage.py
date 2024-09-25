@@ -4,6 +4,8 @@ import sys
 import signal
 import logging
 
+# To start the venv: source OBTBvenv/bin/activate
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

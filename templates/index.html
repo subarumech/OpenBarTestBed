@@ -121,7 +121,7 @@
         </div>
         <div id="speedControl" class="slider-container">
             <label for="speed">Speed:</label>
-            <input type="range" id="speed" min="0" max="100" value="0">
+            <input type="range" id="speed" min="0" max="100" value="50">
             <span id="speedValue" class="slider-value">0%</span>
         </div>
         <div id="positionControl" class="slider-container" style="display: none;">
@@ -270,7 +270,7 @@
         setInterval(() => {
             updatePosition();
             updateHomedStatus();
-        }, 1000);
+        }, 500);
 
         socket.on('motor_status', (data) => {
             if (data.status === 'stopped') {
