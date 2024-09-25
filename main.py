@@ -4,12 +4,21 @@ from motor_controller import MotorController
 import logging
 import atexit
 import signal
+from flask.logging import default_handler
+
+# Suppress werkzeug logging
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
+
+# Configure your app's logger
+app_logger = logging.getLogger(__name__)
+app_logger.setLevel(logging.INFO)
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.logger.removeHandler(default_handler)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 socketio = SocketIO(app)
 
@@ -24,7 +33,7 @@ def index():
 @app.route('/set_speed', methods=['POST'])
 def set_speed():
     speed = request.json['speed']
-    logger.info(f"Setting speed to {speed}")
+    app_logger.info(f"Setting speed to {speed}")
     motor_controller.set_speed(speed)
     return jsonify({"status": "success"})
 

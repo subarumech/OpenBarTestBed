@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #2c2c2c;
+            background: linear-gradient(135deg, #0a0a0a, #2a0830, #4a004b);
             color: white;
             display: flex;
             justify-content: center;
@@ -16,11 +16,11 @@
             margin: 0;
         }
         .container {
-            background-color: #3c3c3c;
+            background-color: rgba(60, 60, 60, 0);
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            max-width: 400px;
+            box-shadow: none;
+            max-width: 300px;
             width: 100%;
         }
         h1 {
@@ -40,15 +40,15 @@
             margin: 10px 0;
             width: 100%;
             padding: 10px;
-            border: none;
+            border: 2px solid white;
             border-radius: 5px;
             cursor: pointer;
-            background-color: white;
-            color: #2c2c2c;
+            background-color: transparent;
+            color: white;
             transition: background-color 0.3s;
         }
         button:hover {
-            background-color: #e0e0e0;
+            background-color: rgba(255, 255, 255, 0.2);
         }
         #status {
             margin-top: 20px;
@@ -89,28 +89,38 @@
         .mode-button {
             width: 48%;
             padding: 10px;
-            border: none;
+            border: 2px solid white;
             border-radius: 5px;
             cursor: pointer;
-            background-color: white;
-            color: #2c2c2c;
+            background-color: transparent;
+            color: white;
             transition: background-color 0.3s;
         }
         .mode-button.active {
-            background-color: #808080;
+            background-color: rgba(255, 255, 255, 0.2);
             color: white;
         }
         .mode-button:disabled {
-            background-color: #cccccc;
-            color: #666666;
+            border-color: #cccccc;
+            color: #cccccc;
             cursor: not-allowed;
         }
         #stop.active {
-            background-color: #ff4444;
+            background-color: rgba(255, 68, 68, 0.5);
             color: white;
+        }
+
+        .custom-slider, #textS, .knob {
+            display: none;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -121,7 +131,7 @@
         </div>
         <div id="speedControl" class="slider-container">
             <label for="speed">Speed:</label>
-            <input type="range" id="speed" min="0" max="100" value="50">
+            <input type="range" id="speed" min="0" max="100" value="0">
             <span id="speedValue" class="slider-value">0%</span>
         </div>
         <div id="positionControl" class="slider-container" style="display: none;">
@@ -266,11 +276,8 @@
                 });
         }
 
-        // Update position and homed status every second
-        setInterval(() => {
-            updatePosition();
-            updateHomedStatus();
-        }, 500);
+        setInterval(updatePosition, 100);
+        setInterval(updateHomedStatus, 1000);
 
         socket.on('motor_status', (data) => {
             if (data.status === 'stopped') {
@@ -314,15 +321,15 @@
             }
         }
 
-        const speedDisplay = document.getElementById('speedValue');
+        function updateSpeed() {
+            const speedValue = speed.value;
+            document.getElementById('speedValue').textContent = `${speedValue}%`;
 
-        speed.addEventListener('input', () => {
-            const speedValue = parseInt(speed.value);
-            speedDisplay.textContent = `${speedValue}%`;
+            // Send speed update to server
             fetch(`${API_URL}/set_speed`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({speed: speedValue})
+                body: JSON.stringify({speed: parseInt(speedValue)})
             }).then(response => response.json())
               .then(data => {
                   if (data.status === 'success') {
@@ -331,7 +338,11 @@
                       console.error('Failed to update speed');
                   }
               });
-        });
+        }
+
+        speed.addEventListener('input', updateSpeed);
+
+        updateSpeed();
 
         leftButton.addEventListener('mousedown', () => {
             if (isActivated) {
