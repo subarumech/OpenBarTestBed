@@ -111,6 +111,14 @@ def start_direction():
     motor_controller.start_direction(direction)
     return jsonify({"status": "success"})
 
+@app.route('/pour', methods=['POST'])
+def pour():
+    ingredient = request.json['ingredient']
+    logger.info(f"Received pour request for {ingredient}")  # Add this line for debugging
+    result = motor_controller.pour(ingredient)
+    logger.info(f"Pour result: {result}")  # Add this line for debugging
+    return jsonify(result)
+
 def cleanup():
     global cleanup_done
     if not cleanup_done:

@@ -3,8 +3,75 @@
 {% block title %}Manual Pouring{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1>Manual Pouring</h1>
-    <p>This page is under construction.</p>
+<div class="page-wrapper">
+    <div class="container">
+        <h1>Manual Pouring</h1>
+        <div class="pouring-container">
+            <div class="pouring-section">
+                <h3>Whiskey</h3>
+                <div class="volume-selector">
+                    <button class="volume-button" onclick="adjustVolume('whiskey', 1)">+</button>
+                    <span id="whiskey-volume" class="volume-display">25 ml</span>
+                    <button class="volume-button" onclick="adjustVolume('whiskey', -1)">-</button>
+                </div>
+                <button class="pour-button" onclick="pour('whiskey')">Pour</button>
+            </div>
+            <div class="vertical-line"></div>
+            <div class="pouring-section">
+                <h3>Syrup</h3>
+                <div class="volume-selector">
+                    <button class="volume-button" onclick="adjustVolume('syrup', 1)">+</button>
+                    <span id="syrup-volume" class="volume-display">25 ml</span>
+                    <button class="volume-button" onclick="adjustVolume('syrup', -1)">-</button>
+                </div>
+                <button class="pour-button" onclick="pour('syrup')">Pour</button>
+            </div>
+            <div class="vertical-line"></div>
+            <div class="pouring-section">
+                <h3>Bitters</h3>
+                <div class="volume-selector">
+                    <button class="volume-button" onclick="adjustVolume('bitters', 1)">+</button>
+                    <span id="bitters-volume" class="volume-display">25 ml</span>
+                    <button class="volume-button" onclick="adjustVolume('bitters', -1)">-</button>
+                </div>
+                <button class="pour-button" onclick="pour('bitters')">Pour</button>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API_URL = ''; // Make sure this is correct
+
+    function adjustVolume(ingredient, change) {
+        const volumeElement = document.getElementById(`${ingredient}-volume`);
+        let currentVolume = parseInt(volumeElement.textContent);
+        currentVolume += change;
+        if (currentVolume < 0) currentVolume = 0;
+        if (currentVolume > 100) currentVolume = 100;
+        volumeElement.textContent = `${currentVolume} ml`;
+    }
+
+    function pour(ingredient) {
+        console.log(`Attempting to pour ${ingredient}`); // Add this line for debugging
+        fetch(`${API_URL}/pour`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ingredient: ingredient})
+        }).then(response => response.json())
+          .then(data => {
+              console.log('Pour response:', data); // Add this line for debugging
+              if (data.status === 'success') {
+                  console.log(`Pouring ${ingredient}`);
+              } else {
+                  console.error('Failed to pour:', data.message);
+              }
+          })
+          .catch(error => {
+              console.error('Error during pour:', error); // Add this line for debugging
+          });
+    }
+</script>
 {% endblock %}

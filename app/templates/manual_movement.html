@@ -16,14 +16,14 @@
     <div id="speedControl" class="slider-container">
         <label for="speed">Speed:</label>
         <div class="slider-wrapper">
-            <input type="range" id="speed" min="0" max="100" value="0">
-            <span id="speedValue" class="slider-value">0%</span>
+            <input type="range" id="speed" min="0" max="100" value="50">
+            <span id="speedValue" class="slider-value">50%</span>
         </div>
     </div>
     <div id="positionControl" class="slider-container" style="display: none;">
         <label for="positionSlider">Position:</label>
         <div class="slider-wrapper">
-            <input type="range" id="positionSlider" min="0" max="2000" value="0">
+            <input type="range" id="positionSlider" min="0" max="5000" value="0">
             <span id="positionValue" class="slider-value">0</span>
         </div>
     </div>
@@ -226,18 +226,17 @@
         }
 
         function updateSpeed() {
-            const speedValue = speed.value;
-            document.getElementById('speedValue').textContent = `${speedValue}%`;
+            const speedVal = speed.value;
+            speedValue.textContent = `${speedVal}%`;
 
-            // Send speed update to server
             fetch(`${API_URL}/set_speed`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({speed: parseInt(speedValue)})
+                body: JSON.stringify({speed: parseInt(speedVal)})
             }).then(response => response.json())
               .then(data => {
                   if (data.status === 'success') {
-                      console.log(`Speed updated to ${speedValue}%`);
+                      console.log(`Speed updated to ${speedVal}%`);
                   } else {
                       console.error('Failed to update speed');
                   }
@@ -246,7 +245,7 @@
 
         speed.addEventListener('input', updateSpeed);
 
-        updateSpeed();
+        document.addEventListener('DOMContentLoaded', updateSpeed);
 
         function startMotor(direction) {
             if (isActivated) {

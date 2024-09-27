@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class MotorController:
     def __init__(self, socketio):
-        self.speed = 0
+        self.speed = 50  # Set default speed to 50%
         self.running = False
         self.thread = None
         self.cleanup_done = False
@@ -26,6 +26,16 @@ class MotorController:
 
         self.limit_switch_thread = None
         self.setup_gpio()
+
+        # Motor configuration
+        self.steps_per_revolution = 200
+        self.microstep = 2
+
+        self.pour_positions = {
+            'whiskey': 1750,
+            'syrup': 2500,
+            'bitters': 3250
+        }
 
     def setup_gpio(self):
         GPIO.setmode(GPIO.BCM)
@@ -95,11 +105,9 @@ class MotorController:
             self.socketio.emit('motor_status', {'status': 'error', 'message': 'Limit switch triggered'})
 
     def _run_motor_free(self):
-        steps_per_revolution = 200
-        microstep = 2
         while self.running and not self.limit_switch_triggered:
             if self.speed > 0:
-                delay = (60 / (self.speed * steps_per_revolution * microstep)) / 2
+                delay = (60 / (self.speed * self.steps_per_revolution * self.microstep)) / 2
                 GPIO.output(self.step_pin, GPIO.HIGH)
                 time.sleep(delay)
                 GPIO.output(self.step_pin, GPIO.LOW)
@@ -119,11 +127,9 @@ class MotorController:
         GPIO.output(self.direction_pin, GPIO.LOW)
 
     def _run_motor(self):
-        steps_per_revolution = 200
-        microstep = 2
         while self.running and not self.limit_switch_triggered:
             if self.speed > 0:
-                delay = (60 / (self.speed * steps_per_revolution * microstep)) / 2
+                delay = (60 / (self.speed * self.steps_per_revolution * self.microstep)) / 2
                 GPIO.output(self.step_pin, GPIO.HIGH)
                 time.sleep(delay)
                 GPIO.output(self.step_pin, GPIO.LOW)
@@ -157,14 +163,12 @@ class MotorController:
             self.thread.start()
 
     def _home_sequence(self):
-        steps_per_revolution = 200
-        microstep = 2
-        homing_speed = 20  # Adjust this value to set homing speed
+        homing_speed = 50  # Adjust this value to set homing speed
         back_off_steps = 50  # Number of steps to back off after hitting the limit switch
 
         # Move towards limit switch
         while self.running and not self.limit_switch_triggered:
-            delay = (60 / (homing_speed * steps_per_revolution * microstep)) / 2
+            delay = (60 / (homing_speed * self.steps_per_revolution * self.microstep)) / 2
             GPIO.output(self.step_pin, GPIO.HIGH)
             time.sleep(delay)
             GPIO.output(self.step_pin, GPIO.LOW)
@@ -227,10 +231,8 @@ class MotorController:
         self.thread.start()
 
     def _move_to_position(self, steps):
-        steps_per_revolution = 200
-        microstep = 2
         while steps > 0 and self.running and not self.limit_switch_triggered:
-            delay = (60 / (self.speed * steps_per_revolution * microstep)) / 2
+            delay = (60 / (self.speed * self.steps_per_revolution * self.microstep)) / 2
             GPIO.output(self.step_pin, GPIO.HIGH)
             time.sleep(delay)
             GPIO.output(self.step_pin, GPIO.LOW)
@@ -252,3 +254,36 @@ class MotorController:
         self.stop()
         logger.info("System deactivated")
         self.socketio.emit('motor_status', {'status': 'deactivated'})
+
+    def pour(self, ingredient):
+        logger.info(f"Starting pour sequence for {ingredient}")
+        if not self._is_homed:
+            logger.info("Motor not homed, initiating homing sequence")
+            self.home()
+            # Wait for homing to complete
+            while not self._is_homed:
+                time.sleep(0.1)
+        
+        logger.info("Motor homed, setting speed to 100%")
+        self.set_speed(100)  # Set speed to 100% after homing
+        
+        logger.info("Motor homed, proceeding with pour")
+
+        if ingredient not in self.pour_positions:
+            logger.error(f"Invalid ingredient: {ingredient}")
+            return {"status": "error", "message": "Invalid ingredient"}
+
+        target_position = self.pour_positions[ingredient]
+        logger.info(f"Moving to position {target_position} for {ingredient}")
+        self.go_to_position(target_position)
+        
+        # Wait for the motor to reach the position
+        while self.running:
+            time.sleep(0.1)
+
+        logger.info(f"Reached position for {ingredient}, simulating pour")
+        # Simulate pouring (you might want to add actual pouring logic here)
+        time.sleep(2)
+
+        logger.info(f"Pour sequence completed for {ingredient}")
+        return {"status": "success", "message": f"Poured {ingredient}"}

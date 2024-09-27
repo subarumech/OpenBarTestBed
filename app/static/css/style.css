@@ -13,7 +13,7 @@ body {
 
 .page-wrapper {
     width: 100%;
-    max-width: 300px;
+    max-width: 500px; /* Changed from 300px to 500px */
     padding: 0;
     box-sizing: border-box;
     display: flex;
@@ -25,9 +25,8 @@ body {
 
 .container {
     width: 100%;
-    max-width: 300px;
+    max-width: 500px; /* Changed from 300px to 500px */
     background-color: rgba(60, 60, 60, 0);
-    padding: 20px;
     border-radius: 10px;
     box-shadow: none;
     box-sizing: border-box;
@@ -215,3 +214,97 @@ input[type="range"] {
 }
 
 /* ... rest of your CSS remains the same ... */
+
+/* Add these new styles at the end of your existing CSS */
+
+.pouring-container {
+    display: flex;
+    justify-content: space-between; /* Changed from center to space-between */
+    align-items: stretch;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.pouring-section {
+    flex: 1;
+    text-align: center;
+    padding: 0 10px; /* Increased padding for better spacing */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box; /* Ensure padding is included in width calculation */
+}
+
+.vertical-line {
+    width: 1px;
+    background-color: rgb(173, 173, 173);
+    margin: 0 5px;
+    align-self: stretch;
+}
+
+.volume-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 10px 20px 20px 20px; /* Increased bottom margin, added left and right padding */
+    width: 100%;
+}
+
+.volume-button {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid white;
+    background-color: transparent;
+    color: white;
+    cursor: pointer;
+    margin: 5px 0;
+    font-size: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+}
+
+.volume-display {
+    font-size: 16px;
+    margin: 5px 0;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.pour-button {
+    width: 100%;
+    max-width: 80px;
+    padding: 16px 8px; /* Increased vertical padding from 8px to 12px */
+    font-size: 14px;
+    cursor: pointer;
+    background-color: transparent;
+    color: white;
+    border: 2px solid white;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+    margin-top: 10px; /* Added top margin */
+}
+
+.pour-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Update the media query for smaller screens */
+@media (max-width: 340px) {
+    .pouring-container {
+        flex-direction: column;
+    }
+
+    .pouring-section {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .vertical-line {
+        width: 80%;
+        height: 1px;
+        margin: 10px 0;
+    }
+}
