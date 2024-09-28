@@ -138,6 +138,11 @@ def pour():
 def recipes():
     return render_template('recipes.html')
 
+@app.route('/recipe/form')
+def recipe_form():
+    recipe_id = request.args.get('id')
+    return render_template('recipe_form.html', recipe_id=recipe_id)
+
 @app.route('/api/recipes', methods=['GET', 'POST'])
 def api_recipes():
     if request.method == 'GET':
@@ -148,12 +153,14 @@ def api_recipes():
         recipe_id = insert_recipe(recipe)
         return jsonify({"id": recipe_id, "status": "success"})
 
-@app.route('/api/recipes/<int:recipe_id>', methods=['PUT', 'DELETE'])
+@app.route('/api/recipes/<int:recipe_id>', methods=['GET', 'PUT', 'DELETE'])
 def api_recipe(recipe_id):
-    if request.method == 'PUT':
+    if request.method == 'GET':
+        recipe = get_recipe(recipe_id)
+        return jsonify(dict(recipe))
+    elif request.method == 'PUT':
         recipe = request.json
-        recipe['id'] = recipe_id
-        update_recipe(recipe)
+        update_recipe(recipe_id, recipe)  # Make sure update_recipe accepts two arguments
         return jsonify({"status": "success"})
     elif request.method == 'DELETE':
         delete_recipe(recipe_id)

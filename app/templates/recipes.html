@@ -5,36 +5,10 @@
 {% block content %}
 <div class="page-wrapper">
     <div class="container">
-        <h1>Cocktail Recipes</h1>
+        <h1>Recipes</h1>
         <div id="recipe-list"></div>
-        <button onclick="showRecipeForm()" class="mode-button">Add New Recipe</button>
-        <div id="recipe-form" style="display: none;">
-            <h2>Add/Edit Recipe</h2>
-            <form id="recipe-form-element">
-                <input type="hidden" id="recipe-id">
-                <label for="recipe-name">Name:</label>
-                <input type="text" id="recipe-name" required>
-                
-                <h3>Whiskey</h3>
-                <label for="whiskey-type">Type:</label>
-                <input type="text" id="whiskey-type" required>
-                <label for="whiskey-volume">Volume (ml):</label>
-                <input type="number" id="whiskey-volume" required>
-                
-                <h3>Syrup</h3>
-                <label for="syrup-type">Type:</label>
-                <input type="text" id="syrup-type" required>
-                <label for="syrup-volume">Volume (ml):</label>
-                <input type="number" id="syrup-volume" required>
-                
-                <h3>Bitters</h3>
-                <label for="bitters-type">Type:</label>
-                <input type="text" id="bitters-type" required>
-                <label for="bitters-volume">Volume (ml):</label>
-                <input type="number" id="bitters-volume" required>
-                
-                <button type="submit" class="mode-button">Save Recipe</button>
-            </form>
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="window.location.href='{{ url_for('recipe_form') }}'" class="mode-button">Add New Recipe</button>
         </div>
     </div>
 </div>
@@ -51,66 +25,6 @@
                 recipes = data;
                 displayRecipes();
             });
-    }
-
-    function showRecipeForm(recipeId = null) {
-        const form = document.getElementById('recipe-form');
-        form.style.display = 'block';
-        
-        if (recipeId !== null) {
-            const recipe = recipes.find(r => r.id === recipeId);
-            document.getElementById('recipe-id').value = recipe.id;
-            document.getElementById('recipe-name').value = recipe.name;
-            document.getElementById('whiskey-type').value = recipe.whiskey_type;
-            document.getElementById('whiskey-volume').value = recipe.whiskey_volume;
-            document.getElementById('syrup-type').value = recipe.syrup_type;
-            document.getElementById('syrup-volume').value = recipe.syrup_volume;
-            document.getElementById('bitters-type').value = recipe.bitters_type;
-            document.getElementById('bitters-volume').value = recipe.bitters_volume;
-        } else {
-            document.getElementById('recipe-form-element').reset();
-            document.getElementById('recipe-id').value = '';
-        }
-    }
-
-    function saveRecipe(event) {
-        event.preventDefault();
-        const recipeId = document.getElementById('recipe-id').value;
-        const newRecipe = {
-            name: document.getElementById('recipe-name').value,
-            whiskey_type: document.getElementById('whiskey-type').value,
-            whiskey_volume: parseInt(document.getElementById('whiskey-volume').value),
-            syrup_type: document.getElementById('syrup-type').value,
-            syrup_volume: parseInt(document.getElementById('syrup-volume').value),
-            bitters_type: document.getElementById('bitters-type').value,
-            bitters_volume: parseInt(document.getElementById('bitters-volume').value)
-        };
-
-        if (recipeId) {
-            fetch(`/api/recipes/${recipeId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newRecipe),
-            })
-            .then(() => {
-                loadRecipes();
-            });
-        } else {
-            fetch('/api/recipes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newRecipe),
-            })
-            .then(() => {
-                loadRecipes();
-            });
-        }
-
-        document.getElementById('recipe-form').style.display = 'none';
     }
 
     function deleteRecipe(recipeId) {
@@ -130,17 +44,18 @@
             recipeElement.className = 'recipe-item';
             recipeElement.innerHTML = `
                 <h3>${recipe.name}</h3>
-                <p>Whiskey: ${recipe.whiskey_type} (${recipe.whiskey_volume} ml)</p>
-                <p>Syrup: ${recipe.syrup_type} (${recipe.syrup_volume} ml)</p>
-                <p>Bitters: ${recipe.bitters_type} (${recipe.bitters_volume} ml)</p>
-                <button onclick="showRecipeForm(${recipe.id})" class="mode-button">Edit</button>
-                <button onclick="deleteRecipe(${recipe.id})" class="mode-button">Delete</button>
+                <p>${recipe.whiskey_type} - ${recipe.whiskey_volume} oz</p>
+                <p>${recipe.syrup_type} - ${recipe.syrup_volume} oz</p>
+                <p>${recipe.bitters_type} - ${recipe.bitters_volume} dashes</p>
+                <div class="recipe-buttons">
+                    <button onclick="window.location.href='{{ url_for('recipe_form') }}?id=${recipe.id}'" class="mode-button">Edit</button>
+                    <button onclick="deleteRecipe(${recipe.id})" class="mode-button">Delete</button>
+                </div>
             `;
             recipeList.appendChild(recipeElement);
         });
     }
 
-    document.getElementById('recipe-form-element').addEventListener('submit', saveRecipe);
     loadRecipes();
 </script>
 {% endblock %}

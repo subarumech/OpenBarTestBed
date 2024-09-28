@@ -19,7 +19,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     min-height: 100vh;
 }
 
@@ -41,6 +41,7 @@ body {
 h1 {
     text-align: center;
     margin-bottom: 20px;
+    width: 100%;
 }
 
 button, .button {
@@ -104,7 +105,7 @@ nav ul li a {
     margin-right: 10px;
 }
 
-.slider-container input[type="range"] {
+slider-container input[type="range"] {
     -webkit-appearance: none;
     width: 100%;
     height: 20px;
@@ -116,11 +117,11 @@ nav ul li a {
     border-radius: 10px;
 }
 
-.slider-container input[type="range"]:hover {
+slider-container input[type="range"]:hover {
     opacity: 1;
 }
 
-.slider-container input[type="range"]::-webkit-slider-thumb {
+slider-container input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 30px;
@@ -130,7 +131,7 @@ nav ul li a {
     border-radius: 50%;
 }
 
-.slider-container input[type="range"]::-moz-range-thumb {
+slider-container input[type="range"]::-moz-range-thumb {
     width: 30px;
     height: 30px;
     background: #ffffff;
@@ -138,7 +139,7 @@ nav ul li a {
     border-radius: 50%;
 }
 
-.slider-value {
+slider-value {
     font-size: 18px;
     min-width: 40px;
     text-align: right;
@@ -155,17 +156,17 @@ input[type="range"] {
     font-weight: bold;
 }
 
-.mode-select {
+mode-select {
     display: flex;
     justify-content: space-between;
     margin-bottom: 20px;
 }
 
-.mode-button {
+mode-button {
     width: 48%;
 }
 
-.mode-button.active {
+mode-button.active {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -232,25 +233,27 @@ input[type="range"] {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: space-between; /* Add this line */
     box-sizing: border-box; /* Ensure padding is included in width calculation */
+    height: 100%; /* Add this line */
 }
 
-.vertical-line {
+vertical-line {
     width: 1px;
     background-color: rgb(173, 173, 173);
     margin: 0 5px;
     align-self: stretch;
 }
 
-.volume-selector {
+volume-selector {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 10px 20px 20px 20px; /* Increased bottom margin, added left and right padding */
+    margin: 10px 0; /* Reduce vertical margin */
     width: 100%;
 }
 
-.volume-button {
+volume-button {
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -266,17 +269,19 @@ input[type="range"] {
     padding: 0;
 }
 
-.volume-display {
-    font-size: 16px;
+volume-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 80px; /* Increase width to accommodate "oz" */
+    text-align: center;
     margin: 5px 0;
-    padding-top: 10px;
-    padding-bottom: 10px;
 }
 
-.pour-button {
+pour-button {
     width: 100%;
     max-width: 80px;
-    padding: 16px 8px; /* Increased vertical padding from 8px to 12px */
+    padding: 10px 8px; /* Increased top padding */
     font-size: 14px;
     cursor: pointer;
     background-color: transparent;
@@ -284,10 +289,10 @@ input[type="range"] {
     border: 2px solid white;
     border-radius: 5px;
     transition: background-color 0.3s;
-    margin-top: 10px; /* Added top margin */
+    margin-top: 15px; /* Push button to the bottom */
 }
 
-.pour-button:hover {
+pour-button:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -311,14 +316,14 @@ input[type="range"] {
 
 /* Add these styles at the end of your existing CSS file */
 
-.recipe-item {
+recipe-item {
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 5px;
     padding: 15px;
     margin-bottom: 15px;
 }
 
-.recipe-item h3 {
+recipe-item h3 {
     margin-top: 0;
 }
 
@@ -341,4 +346,111 @@ input[type="range"] {
 #recipe-form h3 {
     margin-top: 20px;
     margin-bottom: 10px;
+}
+
+/* Add this new style */
+.volume-value {
+    margin-right: 5px;
+}
+
+/* Styles specific to the manual pouring page */
+.manual-pouring-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    width: 100%;
+}
+
+.manual-pouring-container .pouring-container {
+    width: 100%;
+    max-width: 500px; /* Adjust this value as needed */
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin: 0 auto;
+}
+
+.manual-pouring-container .pouring-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 33.33%; /* Equal width for each column */
+    padding: 0 10px; /* Add some padding */
+    box-sizing: border-box;
+}
+
+.manual-pouring-container .vertical-line {
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.3);
+    align-self: stretch;
+    margin: 0;
+}
+
+.manual-pouring-container h3 {
+    text-align: center;
+    width: 100%;
+}
+
+.manual-pouring-container .volume-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.manual-pouring-container .volume-button {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;  /* This makes the button round */
+    font-size: 20px;  /* Adjust the size of the +/- symbol */
+    line-height: 1;  /* Ensures vertical centering of the symbol */
+    border: 2px solid white;  /* Consistent with other buttons */
+    background-color: transparent;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.manual-pouring-container .volume-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.manual-pouring-container .volume-display {
+    margin: 10px 0;
+    text-align: center;
+}
+
+.manual-pouring-container .pour-button {
+    width: 100%;
+    max-width: 80px;
+}
+
+/* Update or add these styles */
+.recipe-item {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.recipe-item h3 {
+    margin-top: 0;
+}
+
+.recipe-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.recipe-buttons .mode-button {
+    width: auto;
+    padding: 8px 30px;
+    margin: 0;
 }

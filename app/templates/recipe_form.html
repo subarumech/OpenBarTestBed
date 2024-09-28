@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{% if recipe_id %}Edit{% else %}Add{% endif %} Recipe{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="container">
+        <h1>{% if recipe_id %}Edit{% else %}Add{% endif %} Recipe</h1>
+        <form id="recipe-form">
+            <input type="hidden" id="recipe-id">
+            <label for="recipe-name">Name:</label>
+            <input type="text" id="recipe-name" required>
+            
+            <h3>Whiskey</h3>
+            <label for="whiskey-type">Type:</label>
+            <input type="text" id="whiskey-type" required>
+            <label for="whiskey-volume">Volume (oz):</label>
+            <input type="number" id="whiskey-volume" step="0.01" min="0" required>
+            
+            <h3>Syrup</h3>
+            <label for="syrup-type">Type:</label>
+            <input type="text" id="syrup-type" required>
+            <label for="syrup-volume">Volume (oz):</label>
+            <input type="number" id="syrup-volume" step="0.01" min="0" required>
+            
+            <h3>Bitters</h3>
+            <label for="bitters-type">Type:</label>
+            <input type="text" id="bitters-type" required>
+            <label for="bitters-volume">Volume (dashes):</label>
+            <input type="number" id="bitters-volume" step="0.01" min="0" required>
+            
+            <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
+                <button type="submit" class="mode-button">Save Recipe</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const recipeId = new URLSearchParams(window.location.search).get('id');
+    
+    if (recipeId) {
+        fetch(`/api/recipes/${recipeId}`)
+            .then(response => response.json())
+            .then(recipe => {
+                document.getElementById('recipe-id').value = recipe.id;
+                document.getElementById('recipe-name').value = recipe.name;
+                document.getElementById('whiskey-type').value = recipe.whiskey_type;
+                document.getElementById('whiskey-volume').value = recipe.whiskey_volume;
+                document.getElementById('syrup-type').value = recipe.syrup_type;
+                document.getElementById('syrup-volume').value = recipe.syrup_volume;
+                document.getElementById('bitters-type').value = recipe.bitters_type;
+                document.getElementById('bitters-volume').value = recipe.bitters_volume;
+            });
+    }
+
+    document.getElementById('recipe-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const newRecipe = {
+            name: document.getElementById('recipe-name').value,
+            whiskey_type: document.getElementById('whiskey-type').value,
+            whiskey_volume: parseFloat(document.getElementById('whiskey-volume').value),
+            syrup_type: document.getElementById('syrup-type').value,
+            syrup_volume: parseFloat(document.getElementById('syrup-volume').value),
+            bitters_type: document.getElementById('bitters-type').value,
+            bitters_volume: parseFloat(document.getElementById('bitters-volume').value)
+        };
+
+        const method = recipeId ? 'PUT' : 'POST';
+        const url = recipeId ? `/api/recipes/${recipeId}` : '/api/recipes';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newRecipe),
+        })
+        .then(() => {
+            window.location.href = "{{ url_for('recipes') }}";
+        });
+    });
+</script>
+{% endblock %}

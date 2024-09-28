@@ -19,9 +19,9 @@ def init_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     whiskey_type TEXT NOT NULL,
-                    whiskey_volume INTEGER NOT NULL,
+                    whiskey_volume REAL NOT NULL,
                     syrup_type TEXT NOT NULL,
-                    syrup_volume INTEGER NOT NULL,
+                    syrup_volume REAL NOT NULL,
                     bitters_type TEXT NOT NULL,
                     bitters_volume INTEGER NOT NULL
                 )
@@ -45,15 +45,19 @@ def insert_recipe(recipe):
     db.commit()
     return cur.lastrowid
 
-def update_recipe(recipe):
+def update_recipe(recipe_id, recipe_data):
     db = get_db()
-    db.execute('''
+    cursor = db.cursor()
+    cursor.execute('''
         UPDATE recipes
-        SET name=?, whiskey_type=?, whiskey_volume=?, syrup_type=?, syrup_volume=?, bitters_type=?, bitters_volume=?
-        WHERE id=?
-    ''', (recipe['name'], recipe['whiskey_type'], recipe['whiskey_volume'],
-          recipe['syrup_type'], recipe['syrup_volume'],
-          recipe['bitters_type'], recipe['bitters_volume'], recipe['id']))
+        SET name = ?, whiskey_type = ?, whiskey_volume = ?, 
+            syrup_type = ?, syrup_volume = ?, 
+            bitters_type = ?, bitters_volume = ?
+        WHERE id = ?
+    ''', (recipe_data['name'], recipe_data['whiskey_type'], recipe_data['whiskey_volume'],
+          recipe_data['syrup_type'], recipe_data['syrup_volume'],
+          recipe_data['bitters_type'], recipe_data['bitters_volume'],
+          recipe_id))
     db.commit()
 
 def delete_recipe(recipe_id):

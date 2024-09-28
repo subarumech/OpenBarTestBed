@@ -4,15 +4,17 @@
 
 {% block content %}
 <div class="page-wrapper">
-    <div class="container">
+    <div class="container manual-pouring-container">
         <h1>Manual Pouring</h1>
         <div class="pouring-container">
             <div class="pouring-section">
                 <h3>Whiskey</h3>
                 <div class="volume-selector">
-                    <button class="volume-button" onclick="adjustVolume('whiskey', 1)">+</button>
-                    <span id="whiskey-volume" class="volume-display">25 ml</span>
-                    <button class="volume-button" onclick="adjustVolume('whiskey', -1)">-</button>
+                    <button class="volume-button" onclick="adjustVolume('whiskey', 0.25)">+</button>
+                    <span id="whiskey-volume" class="volume-display">
+                        <span class="volume-value">1.00</span> oz
+                    </span>
+                    <button class="volume-button" onclick="adjustVolume('whiskey', -0.25)">-</button>
                 </div>
                 <button class="pour-button" onclick="pour('whiskey')">Pour</button>
             </div>
@@ -20,9 +22,11 @@
             <div class="pouring-section">
                 <h3>Syrup</h3>
                 <div class="volume-selector">
-                    <button class="volume-button" onclick="adjustVolume('syrup', 1)">+</button>
-                    <span id="syrup-volume" class="volume-display">25 ml</span>
-                    <button class="volume-button" onclick="adjustVolume('syrup', -1)">-</button>
+                    <button class="volume-button" onclick="adjustVolume('syrup', 0.25)">+</button>
+                    <span id="syrup-volume" class="volume-display">
+                        <span class="volume-value">1.00</span> oz
+                    </span>
+                    <button class="volume-button" onclick="adjustVolume('syrup', -0.25)">-</button>
                 </div>
                 <button class="pour-button" onclick="pour('syrup')">Pour</button>
             </div>
@@ -31,7 +35,7 @@
                 <h3>Bitters</h3>
                 <div class="volume-selector">
                     <button class="volume-button" onclick="adjustVolume('bitters', 1)">+</button>
-                    <span id="bitters-volume" class="volume-display">25 ml</span>
+                    <span id="bitters-volume" class="volume-display">1 dash</span>
                     <button class="volume-button" onclick="adjustVolume('bitters', -1)">-</button>
                 </div>
                 <button class="pour-button" onclick="pour('bitters')">Pour</button>
@@ -47,22 +51,37 @@
 
     function adjustVolume(ingredient, change) {
         const volumeElement = document.getElementById(`${ingredient}-volume`);
-        let currentVolume = parseInt(volumeElement.textContent);
+        let currentVolume;
+        if (ingredient === 'bitters') {
+            currentVolume = parseInt(volumeElement.textContent);
+        } else {
+            currentVolume = parseFloat(volumeElement.querySelector('.volume-value').textContent);
+        }
         currentVolume += change;
         if (currentVolume < 0) currentVolume = 0;
-        if (currentVolume > 100) currentVolume = 100;
-        volumeElement.textContent = `${currentVolume} ml`;
+        if (ingredient === 'bitters') {
+            if (currentVolume > 10) currentVolume = 10;
+            volumeElement.textContent = `${currentVolume} ${currentVolume === 1 ? 'dash' : 'dashes'}`;
+        } else {
+            if (currentVolume > 4) currentVolume = 4;
+            volumeElement.innerHTML = `<span class="volume-value">${currentVolume.toFixed(2)}</span> oz`;
+        }
     }
 
+    // Initialize volume displays
+    document.querySelector('#whiskey-volume .volume-value').textContent = '1.00';
+    document.querySelector('#syrup-volume .volume-value').textContent = '1.00';
+    document.getElementById('bitters-volume').textContent = '1 dash';
+
     function pour(ingredient) {
-        console.log(`Attempting to pour ${ingredient}`); // Add this line for debugging
+        console.log(`Attempting to pour ${ingredient}`);
         fetch(`${API_URL}/pour`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ingredient: ingredient})
         }).then(response => response.json())
           .then(data => {
-              console.log('Pour response:', data); // Add this line for debugging
+              console.log('Pour response:', data);
               if (data.status === 'success') {
                   console.log(`Pouring ${ingredient}`);
               } else {
@@ -70,7 +89,7 @@
               }
           })
           .catch(error => {
-              console.error('Error during pour:', error); // Add this line for debugging
+              console.error('Error during pour:', error);
           });
     }
 </script>
