@@ -5,8 +5,9 @@ import signal
 import logging
 import os
 
-# Add the project root to the Python path
+# Add the project root and app directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app'))
 
 # To start the venv: source OBTBvenv/bin/activate
 # To start the script: python manage.py start

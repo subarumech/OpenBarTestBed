@@ -1,10 +1,11 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, g
 from flask_socketio import SocketIO
 from motor_controller import MotorController  # Remove 'app.' from here
 import logging
 import atexit
 import signal
 from flask.logging import default_handler
+from database import init_db, insert_recipe, update_recipe, delete_recipe, get_all_recipes, get_recipe
 
 # Suppress werkzeug logging
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
@@ -17,10 +18,24 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-app.logger.removeHandler(default_handler)
-app.config['TEMPLATES_AUTO_RELOAD'] = True
-socketio = SocketIO(app)
+def create_app():
+    app = Flask(__name__)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    socketio = SocketIO(app)
+
+    init_db()  # This will only create the database if it doesn't exist
+
+    @app.teardown_appcontext
+    def close_connection(exception):
+        db = getattr(g, '_database', None)
+        if db is not None:
+            db.close()
+
+    # ... rest of your route definitions ...
+
+    return app, socketio
+
+app, socketio = create_app()
 
 motor_controller = MotorController(socketio)
 
@@ -118,6 +133,31 @@ def pour():
     result = motor_controller.pour(ingredient)
     logger.info(f"Pour result: {result}")  # Add this line for debugging
     return jsonify(result)
+
+@app.route('/recipes')
+def recipes():
+    return render_template('recipes.html')
+
+@app.route('/api/recipes', methods=['GET', 'POST'])
+def api_recipes():
+    if request.method == 'GET':
+        recipes = get_all_recipes()
+        return jsonify([dict(recipe) for recipe in recipes])
+    elif request.method == 'POST':
+        recipe = request.json
+        recipe_id = insert_recipe(recipe)
+        return jsonify({"id": recipe_id, "status": "success"})
+
+@app.route('/api/recipes/<int:recipe_id>', methods=['PUT', 'DELETE'])
+def api_recipe(recipe_id):
+    if request.method == 'PUT':
+        recipe = request.json
+        recipe['id'] = recipe_id
+        update_recipe(recipe)
+        return jsonify({"status": "success"})
+    elif request.method == 'DELETE':
+        delete_recipe(recipe_id)
+        return jsonify({"status": "success"})
 
 def cleanup():
     global cleanup_done

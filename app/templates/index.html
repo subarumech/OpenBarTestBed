@@ -7,7 +7,8 @@
     <h1><span style="font-weight: normal;">Welcome to</span> OpenBar</h1>
     <div class="button-container">
         <button onclick="window.location.href='{{ url_for('manual_movement') }}'" class="mode-button" style="width: 100%; margin-bottom: 10px;">Manual Movement</button>
-        <button onclick="window.location.href='{{ url_for('manual_pouring') }}'" class="mode-button" style="width: 100%;">Manual Pouring</button>
+        <button onclick="window.location.href='{{ url_for('manual_pouring') }}'" class="mode-button" style="width: 100%; margin-bottom: 10px;">Manual Pouring</button>
+        <button onclick="window.location.href='{{ url_for('recipes') }}'" class="mode-button" style="width: 100%;">Recipes</button>
     </div>
 </div>
 {% endblock %}
