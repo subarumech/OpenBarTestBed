@@ -37,6 +37,12 @@ class MotorController:
             'bitters': 3250
         }
 
+        self.acceleration = 3000  # Increase acceleration for faster ramp-up
+        self.min_speed = 200  # Increase minimum speed to avoid squealing
+        self.max_speed = 1500  # Maximum speed in steps/second
+        self.current_speed = self.min_speed
+        self.target_speed = self.min_speed
+
     def setup_gpio(self):
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -56,10 +62,8 @@ class MotorController:
 
     def set_speed(self, speed):
         self.speed = min(max(speed, 0), 100)
-        logger.info(f"Speed set to {self.speed}")
-        if self.running:
-            # If the motor is already running, update the speed immediately
-            self._update_motor_speed()
+        logger.info(f"Speed set to {self.speed}%")
+        self.target_speed = self.min_speed + (self.speed / 100) * (self.max_speed - self.min_speed)
 
     def _update_motor_speed(self):
         # This method should be called when the motor is running and the speed changes
@@ -107,12 +111,22 @@ class MotorController:
     def _run_motor_free(self):
         while self.running and not self.limit_switch_triggered:
             if self.speed > 0:
-                delay = (60 / (self.speed * self.steps_per_revolution * self.microstep)) / 2
+                delay = 1 / (self.speed * self.max_speed / 100)  # Convert speed percentage to delay
                 GPIO.output(self.step_pin, GPIO.HIGH)
-                time.sleep(delay)
+                time.sleep(delay / 2)
                 GPIO.output(self.step_pin, GPIO.LOW)
-                time.sleep(delay)
+                time.sleep(delay / 2)
                 self.position += 1 if GPIO.input(self.direction_pin) == GPIO.HIGH else -1
+
+        self.running = False
+        self._power_off_motor()
+        self.socketio.emit('motor_status', {'status': 'stopped', 'position': self.position})
+
+    def _accelerate(self, target_speed, current_speed, acceleration):
+        if current_speed < target_speed:
+            return min(current_speed + acceleration, target_speed)
+        else:
+            return max(current_speed - acceleration, target_speed)
 
     def stop(self):
         self.running = False
@@ -212,6 +226,51 @@ class MotorController:
             GPIO.cleanup()
             logger.info("Motor controller cleanup completed")
 
+    def _move_steps(self, steps, speed):
+        direction = GPIO.HIGH if steps > 0 else GPIO.LOW
+        GPIO.output(self.direction_pin, direction)
+
+        remaining_steps = abs(steps)
+        target_speed = self.min_speed + (speed / 100) * (self.max_speed - self.min_speed)
+        
+        # Reset acceleration state
+        self.current_speed = self.min_speed
+
+        # Calculate acceleration and deceleration distances
+        acceleration_distance = int((target_speed**2 - self.min_speed**2) / (2 * self.acceleration))
+        deceleration_distance = acceleration_distance
+
+        # Adjust for short movements
+        if remaining_steps < 2 * acceleration_distance:
+            acceleration_distance = remaining_steps // 2
+            deceleration_distance = remaining_steps - acceleration_distance
+            target_speed = (2 * self.acceleration * acceleration_distance + self.min_speed**2)**0.5
+
+        while remaining_steps > 0 and self.running and not self.limit_switch_triggered:
+            if remaining_steps > deceleration_distance:
+                # Accelerate or maintain speed
+                self.current_speed = min(self.current_speed + self.acceleration * 0.001, target_speed)
+            else:
+                # Decelerate
+                deceleration_progress = 1 - (remaining_steps / deceleration_distance)
+                self.current_speed = max(
+                    self.min_speed,
+                    target_speed - (target_speed - self.min_speed) * deceleration_progress
+                )
+
+            if self.current_speed > 0:
+                delay = 1 / self.current_speed
+                GPIO.output(self.step_pin, GPIO.HIGH)
+                time.sleep(delay / 2)
+                GPIO.output(self.step_pin, GPIO.LOW)
+                time.sleep(delay / 2)
+                self.position += 1 if direction == GPIO.HIGH else -1
+                remaining_steps -= 1
+
+        self.running = False
+        self._power_off_motor()
+        self.socketio.emit('motor_status', {'status': 'stopped', 'position': self.position})
+
     def go_to_position(self, target_position):
         if not self._is_homed:
             logger.warning("Cannot move to position: Motor not homed")
@@ -225,35 +284,10 @@ class MotorController:
         GPIO.output(self.enable_pin, GPIO.LOW)  # Enable the motor
         
         steps_to_move = target_position - self.position
-        GPIO.output(self.direction_pin, GPIO.HIGH if steps_to_move > 0 else GPIO.LOW)
+        target_speed = self.speed * self.max_speed / 100
         
-        self.thread = threading.Thread(target=self._move_to_position, args=(abs(steps_to_move),))
+        self.thread = threading.Thread(target=self._move_steps, args=(steps_to_move, self.speed))
         self.thread.start()
-
-    def _move_to_position(self, steps):
-        while steps > 0 and self.running and not self.limit_switch_triggered:
-            delay = (60 / (self.speed * self.steps_per_revolution * self.microstep)) / 2
-            GPIO.output(self.step_pin, GPIO.HIGH)
-            time.sleep(delay)
-            GPIO.output(self.step_pin, GPIO.LOW)
-            time.sleep(delay)
-            self.position += 1 if GPIO.input(self.direction_pin) == GPIO.HIGH else -1
-            steps -= 1
-
-        self.running = False
-        self._power_off_motor()
-        self.socketio.emit('motor_status', {'status': 'stopped', 'position': self.position})
-
-    def activate(self):
-        self.is_activated = True
-        logger.info("System activated")
-        self.socketio.emit('motor_status', {'status': 'activated'})
-
-    def deactivate(self):
-        self.is_activated = False
-        self.stop()
-        logger.info("System deactivated")
-        self.socketio.emit('motor_status', {'status': 'deactivated'})
 
     def pour(self, ingredient):
         logger.info(f"Starting pour sequence for {ingredient}")
@@ -265,16 +299,15 @@ class MotorController:
                 time.sleep(0.1)
         
         logger.info("Motor homed, setting speed to 100%")
-        self.set_speed(100)  # Set speed to 100% after homing
+        self.set_speed(100)  # Set speed to 100% for pouring
         
-        logger.info("Motor homed, proceeding with pour")
-
         if ingredient not in self.pour_positions:
             logger.error(f"Invalid ingredient: {ingredient}")
             return {"status": "error", "message": "Invalid ingredient"}
 
         target_position = self.pour_positions[ingredient]
         logger.info(f"Moving to position {target_position} for {ingredient}")
+        
         self.go_to_position(target_position)
         
         # Wait for the motor to reach the position
@@ -287,3 +320,14 @@ class MotorController:
 
         logger.info(f"Pour sequence completed for {ingredient}")
         return {"status": "success", "message": f"Poured {ingredient}"}
+
+    def activate(self):
+        self.is_activated = True
+        logger.info("System activated")
+        self.socketio.emit('motor_status', {'status': 'activated'})
+
+    def deactivate(self):
+        self.is_activated = False
+        self.stop()
+        logger.info("System deactivated")
+        self.socketio.emit('motor_status', {'status': 'deactivated'})
