@@ -365,7 +365,17 @@ class MotorController:
             return {"status": "error", "message": f"No pump for {ingredient}"}
 
         logger.info(f"Pour sequence completed for {ingredient}")
-        return {"status": "success", "message": f"Poured {volume} of {ingredient}"}
+        
+        # Move to position 4900 after pouring
+        logger.info("Moving to position 4900")
+        self.go_to_position(4900)
+        
+        # Wait for the motor to reach the position
+        while self.running:
+            time.sleep(0.1)
+        
+        logger.info("Reached position 4900")
+        return {"status": "success", "message": f"Poured {volume} of {ingredient} and moved to position 4900"}
 
     def _get_pump_pin(self, ingredient):
         if ingredient == 'whiskey':

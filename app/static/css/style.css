@@ -452,5 +452,60 @@ recipe-item h3 {
 .recipe-buttons .mode-button {
     width: auto;
     padding: 8px 30px;
-    margin: 0;
+    margin: 20px 0 0 0;  /* Added top margin */
+}
+
+.ingredient-title {
+    font-size: 18px;
+    height: 2.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 5px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.ingredient-title span {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-wrap: break-word;
+    max-width: 100%;
+    line-height: 1.2em;
+    max-height: 2.4em; /* 2 lines * 1.2em line-height */
+}
+
+@media (max-width: 400px) {
+    .ingredient-title {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 350px) {
+    .ingredient-title {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 300px) {
+    .ingredient-title {
+        font-size: 12px;
+    }
+}
+
+/* Add this new rule to enable text scaling */
+.ingredient-title span {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    transform-origin: center center;
+}
+
+#pour-all {
+    margin-top: 30px;  // Adjust this value as needed
 }

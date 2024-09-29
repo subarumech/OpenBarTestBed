@@ -13,21 +13,21 @@
             
             <h3>Whiskey</h3>
             <label for="whiskey-type">Type:</label>
-            <input type="text" id="whiskey-type" required>
+            <input type="text" id="whiskey-type">
             <label for="whiskey-volume">Volume (oz):</label>
-            <input type="number" id="whiskey-volume" step="0.01" min="0" required>
+            <input type="number" id="whiskey-volume" step="0.01" min="0">
             
             <h3>Syrup</h3>
             <label for="syrup-type">Type:</label>
-            <input type="text" id="syrup-type" required>
+            <input type="text" id="syrup-type">
             <label for="syrup-volume">Volume (oz):</label>
-            <input type="number" id="syrup-volume" step="0.01" min="0" required>
+            <input type="number" id="syrup-volume" step="0.01" min="0">
             
             <h3>Bitters</h3>
             <label for="bitters-type">Type:</label>
-            <input type="text" id="bitters-type" required>
+            <input type="text" id="bitters-type">
             <label for="bitters-volume">Volume (dashes):</label>
-            <input type="number" id="bitters-volume" step="0.01" min="0" required>
+            <input type="number" id="bitters-volume" step="1" min="0">
             
             <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
                 <button type="submit" class="mode-button">Save Recipe</button>
@@ -47,12 +47,12 @@
             .then(recipe => {
                 document.getElementById('recipe-id').value = recipe.id;
                 document.getElementById('recipe-name').value = recipe.name;
-                document.getElementById('whiskey-type').value = recipe.whiskey_type;
-                document.getElementById('whiskey-volume').value = recipe.whiskey_volume;
-                document.getElementById('syrup-type').value = recipe.syrup_type;
-                document.getElementById('syrup-volume').value = recipe.syrup_volume;
-                document.getElementById('bitters-type').value = recipe.bitters_type;
-                document.getElementById('bitters-volume').value = recipe.bitters_volume;
+                document.getElementById('whiskey-type').value = recipe.whiskey_type || '';
+                document.getElementById('whiskey-volume').value = recipe.whiskey_volume || '';
+                document.getElementById('syrup-type').value = recipe.syrup_type || '';
+                document.getElementById('syrup-volume').value = recipe.syrup_volume || '';
+                document.getElementById('bitters-type').value = recipe.bitters_type || '';
+                document.getElementById('bitters-volume').value = recipe.bitters_volume || '';
             });
     }
 
@@ -61,11 +61,11 @@
         const newRecipe = {
             name: document.getElementById('recipe-name').value,
             whiskey_type: document.getElementById('whiskey-type').value,
-            whiskey_volume: parseFloat(document.getElementById('whiskey-volume').value),
+            whiskey_volume: parseFloat(document.getElementById('whiskey-volume').value) || 0,
             syrup_type: document.getElementById('syrup-type').value,
-            syrup_volume: parseFloat(document.getElementById('syrup-volume').value),
+            syrup_volume: parseFloat(document.getElementById('syrup-volume').value) || 0,
             bitters_type: document.getElementById('bitters-type').value,
-            bitters_volume: parseFloat(document.getElementById('bitters-volume').value)
+            bitters_volume: parseInt(document.getElementById('bitters-volume').value) || 0
         };
 
         const method = recipeId ? 'PUT' : 'POST';

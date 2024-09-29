@@ -5,7 +5,7 @@ import logging
 import atexit
 import signal
 from flask.logging import default_handler
-from database import init_db, insert_recipe, update_recipe, delete_recipe, get_all_recipes, get_recipe
+from database import init_db, insert_recipe, update_recipe, delete_recipe, get_all_recipes, get_recipe, DATABASE  # Add DATABASE here
 import threading
 import time
 import os
@@ -32,7 +32,9 @@ def create_app():
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     socketio = SocketIO(app)
 
-    init_db()  # This will only create the database if it doesn't exist
+    with app.app_context():
+        init_db()  # This will only create the database if it doesn't exist
+        logger.info(f"Database initialized at {DATABASE}")  # This should now work
 
     if motor_controller is None:
         motor_controller = MotorController(socketio)
@@ -161,10 +163,21 @@ def recipe_form():
 def api_recipes():
     if request.method == 'GET':
         recipes = get_all_recipes()
-        return jsonify([dict(recipe) for recipe in recipes])
+        logger.info(f"Fetched {len(recipes)} recipes from the database")
+        recipe_list = [dict(recipe) for recipe in recipes]
+        logger.info(f"Recipe list: {recipe_list}")
+        return jsonify(recipe_list)
     elif request.method == 'POST':
         recipe = request.json
+        # Set volume to 0 if type is empty
+        if not recipe.get('whiskey_type'):
+            recipe['whiskey_volume'] = 0
+        if not recipe.get('syrup_type'):
+            recipe['syrup_volume'] = 0
+        if not recipe.get('bitters_type'):
+            recipe['bitters_volume'] = 0
         recipe_id = insert_recipe(recipe)
+        logger.info(f"Inserted new recipe with ID: {recipe_id}")
         return jsonify({"id": recipe_id, "status": "success"})
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['GET', 'PUT', 'DELETE'])
@@ -174,11 +187,22 @@ def api_recipe(recipe_id):
         return jsonify(dict(recipe))
     elif request.method == 'PUT':
         recipe = request.json
-        update_recipe(recipe_id, recipe)  # Make sure update_recipe accepts two arguments
+        # Set volume to 0 if type is empty
+        if not recipe.get('whiskey_type'):
+            recipe['whiskey_volume'] = 0
+        if not recipe.get('syrup_type'):
+            recipe['syrup_volume'] = 0
+        if not recipe.get('bitters_type'):
+            recipe['bitters_volume'] = 0
+        update_recipe(recipe_id, recipe)
         return jsonify({"status": "success"})
     elif request.method == 'DELETE':
         delete_recipe(recipe_id)
         return jsonify({"status": "success"})
+
+@app.route('/recipe/pour/<int:recipe_id>')
+def recipe_pour(recipe_id):
+    return render_template('recipe_pour.html', recipe_id=recipe_id)
 
 def init_app(app, socketio, motor_controller):
     global app_instance, socketio_instance, motor_controller_instance

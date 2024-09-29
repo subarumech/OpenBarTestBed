@@ -5,42 +5,36 @@
 {% block content %}
 <div class="page-wrapper">
     <div class="container manual-pouring-container">
-        <h1>Pour Recipe: <span id="recipe-name"></span></h1>
+        <h1><span id="recipe-name"></span></h1>
         <div class="pouring-container">
             <div class="pouring-section">
-                <h3>Whiskey</h3>
+                <h3 id="whiskey-title" class="ingredient-title"><span></span></h3>
                 <div class="volume-selector">
                     <button class="volume-button" onclick="adjustVolume('whiskey', 0.25)">+</button>
-                    <span id="whiskey-volume" class="volume-display">
-                        <span class="volume-value">1.00</span> oz
-                    </span>
+                    <div id="whiskey-volume" class="volume-display"><span class="volume-value">0</span> oz</div>
                     <button class="volume-button" onclick="adjustVolume('whiskey', -0.25)">-</button>
                 </div>
             </div>
             <div class="vertical-line"></div>
             <div class="pouring-section">
-                <h3>Syrup</h3>
+                <h3 id="syrup-title" class="ingredient-title"><span></span></h3>
                 <div class="volume-selector">
                     <button class="volume-button" onclick="adjustVolume('syrup', 0.25)">+</button>
-                    <span id="syrup-volume" class="volume-display">
-                        <span class="volume-value">1.00</span> oz
-                    </span>
+                    <div id="syrup-volume" class="volume-display"><span class="volume-value">0</span> oz</div>
                     <button class="volume-button" onclick="adjustVolume('syrup', -0.25)">-</button>
                 </div>
             </div>
             <div class="vertical-line"></div>
             <div class="pouring-section">
-                <h3>Bitters</h3>
+                <h3 id="bitters-title" class="ingredient-title"><span></span></h3>
                 <div class="volume-selector">
                     <button class="volume-button" onclick="adjustVolume('bitters', 1)">+</button>
-                    <span id="bitters-volume" class="volume-display">1 dash</span>
+                    <div id="bitters-volume" class="volume-display"><span class="volume-value">0</span> dash(es)</div>
                     <button class="volume-button" onclick="adjustVolume('bitters', -1)">-</button>
                 </div>
             </div>
         </div>
-        <div class="pour-all-container">
-            <button id="pour-all-button" class="pour-all-button" onclick="pourAll()">Make Drink</button>
-        </div>
+        <button id="pour-all" class="mode-button" onclick="pourAll()">Pour Drink</button>
     </div>
 </div>
 {% endblock %}
@@ -49,19 +43,46 @@
 <script>
     const API_URL = '';
     let recipe = null;
+    const recipeId = {{ recipe_id }};  // Use the recipe_id passed from the route
+
+    function adjustFontSize(element) {
+        const span = element.querySelector('span');
+        const maxHeight = parseFloat(getComputedStyle(element).height);
+        let fontSize = parseFloat(getComputedStyle(span).fontSize);
+        
+        span.style.fontSize = '';
+        while (span.offsetHeight > maxHeight && fontSize > 8) {
+            fontSize -= 0.5;
+            span.style.fontSize = `${fontSize}px`;
+        }
+    }
 
     function loadRecipe() {
-        const recipeId = window.location.pathname.split('/').pop();
-        fetch(`${API_URL}/api/recipes/${recipeId}`)
+        const recipeId = {{ recipe_id }};
+        fetch(`/api/recipes/${recipeId}`)
             .then(response => response.json())
             .then(data => {
                 recipe = data;
                 document.getElementById('recipe-name').textContent = recipe.name;
+                
+                const whiskey = document.querySelector('#whiskey-title span');
+                whiskey.textContent = recipe.whiskey_type || 'Whiskey';
+                adjustFontSize(document.getElementById('whiskey-title'));
+                
+                const syrup = document.querySelector('#syrup-title span');
+                syrup.textContent = recipe.syrup_type || 'Syrup';
+                adjustFontSize(document.getElementById('syrup-title'));
+                
+                const bitters = document.querySelector('#bitters-title span');
+                bitters.textContent = recipe.bitters_type || 'Bitters';
+                adjustFontSize(document.getElementById('bitters-title'));
+                
                 document.querySelector('#whiskey-volume .volume-value').textContent = recipe.whiskey_volume.toFixed(2);
                 document.querySelector('#syrup-volume .volume-value').textContent = recipe.syrup_volume.toFixed(2);
-                document.getElementById('bitters-volume').textContent = `${recipe.bitters_volume} ${recipe.bitters_volume === 1 ? 'dash' : 'dashes'}`;
-            })
-            .catch(error => console.error('Error loading recipe:', error));
+                
+                const bittersText = recipe.bitters_volume === 1 ? 'dash' : 'dashes';
+                document.getElementById('bitters-volume').textContent = `${recipe.bitters_volume} ${bittersText}`;
+            });
     }
 
     function adjustVolume(ingredient, change) {
@@ -138,6 +159,13 @@
             alert('An error occurred while pouring ingredients. Please check the console for details.');
         }
     }
+
+    // Call this function when the window is resized
+    window.addEventListener('resize', function() {
+        adjustFontSize(document.getElementById('whiskey-title'));
+        adjustFontSize(document.getElementById('syrup-title'));
+        adjustFontSize(document.getElementById('bitters-title'));
+    });
 
     loadRecipe();
 </script>

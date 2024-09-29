@@ -1,15 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Cocktail Recipes{% endblock %}
+{% block title %}Recipes{% endblock %}
 
 {% block content %}
 <div class="page-wrapper">
     <div class="container">
         <h1>Recipes</h1>
         <div id="recipe-list"></div>
-        <div style="text-align: center; margin-top: 20px;">
-            <button onclick="window.location.href='{{ url_for('recipe_form') }}'" class="mode-button">Add New Recipe</button>
-        </div>
+        <button class="mode-button" onclick="location.href='/recipe/form'">Add New Recipe</button>
     </div>
 </div>
 {% endblock %}
@@ -19,11 +17,22 @@
     let recipes = [];
 
     function loadRecipes() {
+        console.log("Fetching recipes...");
         fetch('/api/recipes')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 recipes = data;
-                displayRecipes();
+                console.log(`Loaded ${recipes.length} recipes:`, recipes);
+                displayRecipes(recipes);
+            })
+            .catch(error => {
+                console.error('Error loading recipes:', error);
+                alert('Failed to load recipes. Please check the console for details.');
             });
     }
 
@@ -36,24 +45,47 @@
         });
     }
 
-    function displayRecipes() {
+    function displayRecipes(recipes) {
+        console.log("Displaying recipes:", recipes);
         const recipeList = document.getElementById('recipe-list');
         recipeList.innerHTML = '';
+        if (recipes.length === 0) {
+            recipeList.innerHTML = '<p>No recipes found.</p>';
+            return;
+        }
         recipes.forEach(recipe => {
-            const recipeElement = document.createElement('div');
-            recipeElement.className = 'recipe-item';
-            recipeElement.innerHTML = `
-                <h3>${recipe.name}</h3>
-                <p>${recipe.whiskey_type} - ${recipe.whiskey_volume} oz</p>
-                <p>${recipe.syrup_type} - ${recipe.syrup_volume} oz</p>
-                <p>${recipe.bitters_type} - ${recipe.bitters_volume} dashes</p>
+            const recipeItem = document.createElement('div');
+            recipeItem.className = 'recipe-item';
+            let recipeHtml = `<h3>${recipe.name}</h3>`;
+            
+            if (recipe.whiskey_type && recipe.whiskey_volume > 0) {
+                recipeHtml += `<p>${recipe.whiskey_type}: ${recipe.whiskey_volume} oz</p>`;
+            }
+            if (recipe.syrup_type && recipe.syrup_volume > 0) {
+                recipeHtml += `<p>${recipe.syrup_type}: ${recipe.syrup_volume} oz</p>`;
+            }
+            if (recipe.bitters_type && recipe.bitters_volume > 0) {
+                recipeHtml += `<p>${recipe.bitters_type}: ${recipe.bitters_volume} dash(es)</p>`;
+            }
+            
+            recipeHtml += `
                 <div class="recipe-buttons">
-                    <button onclick="window.location.href='{{ url_for('recipe_form') }}?id=${recipe.id}'" class="mode-button">Edit</button>
-                    <button onclick="deleteRecipe(${recipe.id})" class="mode-button">Delete</button>
+                    <button class="mode-button" onclick="pourRecipe(${recipe.id})">Pour</button>
+                    <button class="mode-button" onclick="editRecipe(${recipe.id})">Edit</button>
+                    <button class="mode-button" onclick="deleteRecipe(${recipe.id})">Delete</button>
                 </div>
             `;
-            recipeList.appendChild(recipeElement);
+            recipeItem.innerHTML = recipeHtml;
+            recipeList.appendChild(recipeItem);
         });
+    }
+
+    function editRecipe(recipeId) {
+        window.location.href = `/recipe/form?id=${recipeId}`;
+    }
+
+    function pourRecipe(recipeId) {
+        window.location.href = `/recipe/pour/${recipeId}`;
     }
 
     loadRecipes();
