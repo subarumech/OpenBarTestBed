@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Manual Pouring{% endblock %}
+{% block title %}Pour Recipe{% endblock %}
 
 {% block content %}
 <div class="page-wrapper">
     <div class="container manual-pouring-container">
-        <h1>Manual Pouring</h1>
+        <h1>Pour Recipe: <span id="recipe-name"></span></h1>
         <div class="pouring-container">
             <div class="pouring-section">
                 <h3>Whiskey</h3>
@@ -16,7 +16,6 @@
                     </span>
                     <button class="volume-button" onclick="adjustVolume('whiskey', -0.25)">-</button>
                 </div>
-                <button class="pour-button" onclick="pour('whiskey')">Pour</button>
             </div>
             <div class="vertical-line"></div>
             <div class="pouring-section">
@@ -28,7 +27,6 @@
                     </span>
                     <button class="volume-button" onclick="adjustVolume('syrup', -0.25)">-</button>
                 </div>
-                <button class="pour-button" onclick="pour('syrup')">Pour</button>
             </div>
             <div class="vertical-line"></div>
             <div class="pouring-section">
@@ -38,8 +36,10 @@
                     <span id="bitters-volume" class="volume-display">1 dash</span>
                     <button class="volume-button" onclick="adjustVolume('bitters', -1)">-</button>
                 </div>
-                <button class="pour-button" onclick="pour('bitters')">Pour</button>
             </div>
+        </div>
+        <div class="pour-all-container">
+            <button id="pour-all-button" class="pour-all-button" onclick="pourAll()">Make Drink</button>
         </div>
     </div>
 </div>
@@ -47,7 +47,22 @@
 
 {% block scripts %}
 <script>
-    const API_URL = ''; // Make sure this is correct
+    const API_URL = '';
+    let recipe = null;
+
+    function loadRecipe() {
+        const recipeId = window.location.pathname.split('/').pop();
+        fetch(`${API_URL}/api/recipes/${recipeId}`)
+            .then(response => response.json())
+            .then(data => {
+                recipe = data;
+                document.getElementById('recipe-name').textContent = recipe.name;
+                document.querySelector('#whiskey-volume .volume-value').textContent = recipe.whiskey_volume.toFixed(2);
+                document.querySelector('#syrup-volume .volume-value').textContent = recipe.syrup_volume.toFixed(2);
+                document.getElementById('bitters-volume').textContent = `${recipe.bitters_volume} ${recipe.bitters_volume === 1 ? 'dash' : 'dashes'}`;
+            })
+            .catch(error => console.error('Error loading recipe:', error));
+    }
 
     function adjustVolume(ingredient, change) {
         const volumeElement = document.getElementById(`${ingredient}-volume`);
@@ -63,39 +78,67 @@
             if (currentVolume > 10) currentVolume = 10;
             volumeElement.textContent = `${currentVolume} ${currentVolume === 1 ? 'dash' : 'dashes'}`;
         } else {
+            if (currentVolume > 4) currentVolume = 4;
             volumeElement.innerHTML = `<span class="volume-value">${currentVolume.toFixed(2)}</span> oz`;
         }
     }
 
-    // Initialize volume displays
-    document.querySelector('#whiskey-volume .volume-value').textContent = '1.00';
-    document.querySelector('#syrup-volume .volume-value').textContent = '1.00';
-    document.getElementById('bitters-volume').textContent = '1 dash';
-
     function pour(ingredient) {
-        console.log(`Attempting to pour ${ingredient}`);
         let volume;
         if (ingredient === 'bitters') {
             volume = parseInt(document.getElementById('bitters-volume').textContent);
         } else {
             volume = parseFloat(document.querySelector(`#${ingredient}-volume .volume-value`).textContent);
         }
-        fetch(`${API_URL}/pour`, {
+        
+        return fetch(`${API_URL}/pour`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'}, 
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ingredient: ingredient, volume: volume})
-        }).then(response => response.json())
-          .then(data => {
-              console.log('Pour response:', data);
-              if (data.status === 'success') {
-                  console.log(`Poured ${volume} of ${ingredient}`);
-              } else {
-                  console.error('Failed to pour:', data.message);
-              }
-          })
-          .catch(error => {
-              console.error('Error during pour:', error);
-          });
+        }).then(response => response.json());
     }
+
+    function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function moveToPosition(position) {
+        return fetch(`${API_URL}/move_to_position`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({position: position})
+        }).then(response => response.json());
+    }
+
+    async function pourAll() {
+        try {
+            // Pour whiskey
+            console.log('Pouring whiskey...');
+            await pour('whiskey');
+            await wait(1000);  // Wait 1 second
+
+            // Pour syrup
+            console.log('Pouring syrup...');
+            await pour('syrup');
+            await wait(1000);  // Wait 1 second
+
+            // Pour bitters
+            console.log('Pouring bitters...');
+            await pour('bitters');
+            await wait(1000);  // Wait 1 second
+
+            // Move to position 4900
+            console.log('Moving to final position...');
+            await moveToPosition(4900);
+
+            console.log('All pour operations completed successfully');
+            alert('All ingredients poured successfully!');
+        } catch (error) {
+            console.error('Error during pour all operation:', error);
+            alert('An error occurred while pouring ingredients. Please check the console for details.');
+        }
+    }
+
+    loadRecipe();
 </script>
 {% endblock %}

@@ -49,9 +49,13 @@ class MotorController:
         self.target_speed = self.min_speed
 
         # Conversion factors (seconds per oz)
-        self.whiskey_conversion = 1  # seconds per oz
+        self.whiskey_conversion = 1.3  # seconds per oz
         self.syrup_conversion = 2    # seconds per oz
         self.bitters_conversion = 1  # seconds per dash
+
+        self.is_shutting_down = False
+
+        self.load_homing_state()  # Add this line
 
     def setup_gpio(self):
         GPIO.setmode(GPIO.BCM)
@@ -185,12 +189,18 @@ class MotorController:
         return self.limit_switch_triggered
 
     def home(self):
+        if self.is_shutting_down:
+            logger.info("Homing aborted: system is shutting down")
+            return
+        
         if not self.running and not self.limit_switch_triggered:
             self.running = True
             GPIO.output(self.enable_pin, GPIO.LOW)  # Enable the motor
             GPIO.output(self.direction_pin, GPIO.LOW)  # Set direction towards limit switch
             self.thread = threading.Thread(target=self._home_sequence)
             self.thread.start()
+            self.thread.join()  # Wait for homing to complete
+            self.save_homing_state()  # Add this line
 
     def _home_sequence(self):
         homing_speed = 50  # Adjust this value to set homing speed
@@ -234,11 +244,12 @@ class MotorController:
         return self._is_homed
 
     def cleanup(self):
+        self.is_shutting_down = True
         if not self.cleanup_done:
             self.cleanup_done = True
             self.stop()
             if self.limit_switch_thread and self.limit_switch_thread.is_alive():
-                self.limit_switch_thread.join()
+                self.limit_switch_thread.join(timeout=1)
             # Turn off all pumps
             GPIO.output(self.whiskey_pump_pin, GPIO.LOW)
             GPIO.output(self.syrup_pump_pin, GPIO.LOW)
@@ -386,3 +397,22 @@ class MotorController:
             return volume * self.bitters_conversion
         else:
             return 0
+
+    def save_homing_state(self):
+        with open('/tmp/motor_homed_state.txt', 'w') as f:
+            f.write('1' if self._is_homed else '0')
+        logger.info(f"Saved homing state: {self._is_homed}")
+
+    def load_homing_state(self):
+        try:
+            with open('/tmp/motor_homed_state.txt', 'r') as f:
+                state = f.read().strip()
+                self._is_homed = (state == '1')
+            logger.info(f"Loaded homing state: {self._is_homed}")
+        except FileNotFoundError:
+            self._is_homed = False
+            logger.info("No saved homing state found, assuming not homed")
+
+    def set_homed(self, state):
+        self._is_homed = state
+        self.save_homing_state()

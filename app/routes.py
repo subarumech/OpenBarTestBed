@@ -6,6 +6,9 @@ import atexit
 import signal
 from flask.logging import default_handler
 from database import init_db, insert_recipe, update_recipe, delete_recipe, get_all_recipes, get_recipe
+import threading
+import time
+import os
 
 # Suppress werkzeug logging
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
@@ -18,12 +21,21 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Add this global variable at the top of the file, after the imports
+cleanup_done = False
+
+motor_controller = None
+
 def create_app():
+    global motor_controller
     app = Flask(__name__)
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     socketio = SocketIO(app)
 
     init_db()  # This will only create the database if it doesn't exist
+
+    if motor_controller is None:
+        motor_controller = MotorController(socketio)
 
     @app.teardown_appcontext
     def close_connection(exception):
@@ -37,9 +49,10 @@ def create_app():
 
 app, socketio = create_app()
 
-motor_controller = MotorController(socketio)
-
-cleanup_done = False
+# Remove these global variables
+# cleanup_done = False
+# is_shutting_down = False
+# homing_thread = None
 
 @app.route('/')
 def index():
@@ -167,26 +180,30 @@ def api_recipe(recipe_id):
         delete_recipe(recipe_id)
         return jsonify({"status": "success"})
 
+def init_app(app, socketio, motor_controller):
+    global app_instance, socketio_instance, motor_controller_instance
+    app_instance = app
+    socketio_instance = socketio
+    motor_controller_instance = motor_controller
+
 def cleanup():
-    global cleanup_done
+    global cleanup_done, motor_controller
     if not cleanup_done:
         cleanup_done = True
         motor_controller.cleanup()
-        # Additional cleanup for GPIO pins
-        import RPi.GPIO as GPIO
-        GPIO.setmode(GPIO.BCM)
-        for pin in [23, 24, 25]:  # whiskey_pump_pin, syrup_pump_pin, bitters_pump_pin
-            GPIO.setup(pin, GPIO.OUT)
-            GPIO.output(pin, GPIO.LOW)
-        GPIO.cleanup()
-        logger.info("Application cleanup completed, all pump pins set to LOW")
+        logger.info("Application cleanup completed")
 
 # Register the cleanup function to be called on exit
 atexit.register(cleanup)
 
 # Register the cleanup function for SIGTERM and SIGINT signals
-signal.signal(signal.SIGTERM, lambda signum, frame: cleanup())
-signal.signal(signal.SIGINT, lambda signum, frame: cleanup())
+def signal_handler(signum, frame):
+    global is_shutting_down
+    is_shutting_down = True
+    cleanup()
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
 
 @socketio.on('connect')
 def handle_connect():
@@ -196,11 +213,22 @@ def handle_connect():
 def handle_disconnect():
     logger.info("Client disconnected")
 
+# Add this new function
+def initial_homing():
+    global motor_controller
+    logger.info("Performing initial homing sequence")
+    motor_controller.home()
+    motor_controller.set_homed(True)
+
 if __name__ == '__main__':
-    logger.info("Starting Flask application with integrated motor control")
+    logger.info(f"Starting Flask application with integrated motor control (PID: {os.getpid()})")
     try:
+        if not os.environ.get('WERKZEUG_RUN_MAIN'):
+            initial_homing()  # Perform homing only in the main process
         socketio.run(app, host='0.0.0.0', port=6900, debug=True)
     except Exception as e:
         logger.error(f"An error occurred: {e}")
     finally:
         cleanup()
+else:
+    logger.info(f"routes.py module imported (PID: {os.getpid()})")

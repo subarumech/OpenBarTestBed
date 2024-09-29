@@ -42,11 +42,8 @@ def stop_server():
             main_process.kill()
     
     # Call the cleanup function directly
-    try:
-        from app.routes import cleanup
-        cleanup()
-    except ImportError as e:
-        logger.error(f"Error importing cleanup function: {e}")
+    from app.routes import cleanup
+    cleanup()
     
     logger.info("Server has been stopped and cleanup completed.")
     
