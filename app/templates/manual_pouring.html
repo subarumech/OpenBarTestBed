@@ -75,15 +75,21 @@
 
     function pour(ingredient) {
         console.log(`Attempting to pour ${ingredient}`);
+        let volume;
+        if (ingredient === 'bitters') {
+            volume = parseInt(document.getElementById('bitters-volume').textContent);
+        } else {
+            volume = parseFloat(document.querySelector(`#${ingredient}-volume .volume-value`).textContent);
+        }
         fetch(`${API_URL}/pour`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ingredient: ingredient})
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ingredient: ingredient, volume: volume})
         }).then(response => response.json())
           .then(data => {
               console.log('Pour response:', data);
               if (data.status === 'success') {
-                  console.log(`Pouring ${ingredient}`);
+                  console.log(`Poured ${volume} of ${ingredient}`);
               } else {
                   console.error('Failed to pour:', data.message);
               }

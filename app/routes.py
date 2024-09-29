@@ -129,9 +129,10 @@ def start_direction():
 @app.route('/pour', methods=['POST'])
 def pour():
     ingredient = request.json['ingredient']
-    logger.info(f"Received pour request for {ingredient}")  # Add this line for debugging
-    result = motor_controller.pour(ingredient)
-    logger.info(f"Pour result: {result}")  # Add this line for debugging
+    volume = request.json['volume']
+    logger.info(f"Received pour request for {ingredient} (volume: {volume})")
+    result = motor_controller.pour(ingredient, volume)
+    logger.info(f"Pour result: {result}")
     return jsonify(result)
 
 @app.route('/recipes')

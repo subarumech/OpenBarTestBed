@@ -48,6 +48,11 @@ class MotorController:
         self.current_speed = self.min_speed
         self.target_speed = self.min_speed
 
+        # Conversion factors (seconds per oz)
+        self.whiskey_conversion = 1  # seconds per oz
+        self.syrup_conversion = 2    # seconds per oz
+        self.bitters_conversion = 1  # seconds per dash
+
     def setup_gpio(self):
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -309,8 +314,8 @@ class MotorController:
         self.thread = threading.Thread(target=self._move_steps, args=(steps_to_move, self.speed))
         self.thread.start()
 
-    def pour(self, ingredient):
-        logger.info(f"Starting pour sequence for {ingredient}")
+    def pour(self, ingredient, volume):
+        logger.info(f"Starting pour sequence for {ingredient} (volume: {volume})")
         if not self._is_homed:
             logger.info("Motor not homed, initiating homing sequence")
             self.home()
@@ -339,15 +344,17 @@ class MotorController:
         # Activate the appropriate pump
         pump_pin = self._get_pump_pin(ingredient)
         if pump_pin:
+            pour_time = self.calculate_pour_time(ingredient, volume)
+            logger.info(f"Pouring {ingredient} for {pour_time} seconds")
             GPIO.output(pump_pin, GPIO.HIGH)
-            time.sleep(2)  # Run pump for 2 seconds (adjust as needed)
+            time.sleep(pour_time)
             GPIO.output(pump_pin, GPIO.LOW)
         else:
             logger.error(f"No pump associated with ingredient: {ingredient}")
             return {"status": "error", "message": f"No pump for {ingredient}"}
 
         logger.info(f"Pour sequence completed for {ingredient}")
-        return {"status": "success", "message": f"Poured {ingredient}"}
+        return {"status": "success", "message": f"Poured {volume} of {ingredient}"}
 
     def _get_pump_pin(self, ingredient):
         if ingredient == 'whiskey':
@@ -369,3 +376,13 @@ class MotorController:
         self.stop()
         logger.info("System deactivated")
         self.socketio.emit('motor_status', {'status': 'deactivated'})
+
+    def calculate_pour_time(self, ingredient, volume):
+        if ingredient == 'whiskey':
+            return volume * self.whiskey_conversion
+        elif ingredient == 'syrup':
+            return volume * self.syrup_conversion
+        elif ingredient == 'bitters':
+            return volume * self.bitters_conversion
+        else:
+            return 0
