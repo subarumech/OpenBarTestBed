@@ -6,8 +6,9 @@ import logging
 import os
 
 # Add the project root and app directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app'))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+sys.path.append(os.path.join(current_dir, 'app'))
 
 # To start the venv: source OBTBvenv/bin/activate
 # To start the script: python manage.py start
@@ -23,7 +24,9 @@ def start_server():
     global main_process
     
     logger.info("Starting Flask Application...")
-    main_process = subprocess.Popen(["python", MAIN_APP])
+    env = os.environ.copy()
+    env['PYTHONPATH'] = f"{current_dir}:{os.path.join(current_dir, 'app')}:{env.get('PYTHONPATH', '')}"
+    main_process = subprocess.Popen([sys.executable, MAIN_APP], env=env)
     
     logger.info("Server is now running.")
     return True
@@ -38,7 +41,21 @@ def stop_server():
         except subprocess.TimeoutExpired:
             main_process.kill()
     
-    logger.info("Server has been stopped.")
+    # Call the cleanup function directly
+    try:
+        from app.routes import cleanup
+        cleanup()
+    except ImportError as e:
+        logger.error(f"Error importing cleanup function: {e}")
+    
+    logger.info("Server has been stopped and cleanup completed.")
+    
+    # Ensure all GPIO resources are released
+    try:
+        import RPi.GPIO as GPIO
+        GPIO.cleanup()
+    except ImportError:
+        logger.warning("RPi.GPIO module not found, skipping GPIO cleanup")
 
 def signal_handler(sig, frame):
     logger.info("Interrupt received, stopping server...")
@@ -47,6 +64,7 @@ def signal_handler(sig, frame):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     
     if len(sys.argv) > 1:
         command = sys.argv[1].lower()

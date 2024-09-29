@@ -24,6 +24,11 @@ class MotorController:
         
         self.limit_switch_pin = 5
 
+        # Add GPIO pins for pumps
+        self.whiskey_pump_pin = 23
+        self.syrup_pump_pin = 24
+        self.bitters_pump_pin = 25
+
         self.limit_switch_thread = None
         self.setup_gpio()
 
@@ -47,6 +52,7 @@ class MotorController:
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         
+        # Setup motor control pins
         GPIO.setup(self.enable_pin, GPIO.OUT)
         GPIO.setup(self.direction_pin, GPIO.OUT)
         GPIO.setup(self.step_pin, GPIO.OUT)
@@ -58,7 +64,12 @@ class MotorController:
         
         GPIO.setup(self.limit_switch_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         
-        logger.info("GPIO setup completed successfully")
+        # Setup and initialize pump GPIO pins
+        for pin in [self.whiskey_pump_pin, self.syrup_pump_pin, self.bitters_pump_pin]:
+            GPIO.setup(pin, GPIO.OUT)
+            GPIO.output(pin, GPIO.LOW)
+
+        logger.info("GPIO setup completed successfully, all pump pins initialized to LOW")
 
     def set_speed(self, speed):
         self.speed = min(max(speed, 0), 100)
@@ -223,8 +234,17 @@ class MotorController:
             self.stop()
             if self.limit_switch_thread and self.limit_switch_thread.is_alive():
                 self.limit_switch_thread.join()
+            # Turn off all pumps
+            GPIO.output(self.whiskey_pump_pin, GPIO.LOW)
+            GPIO.output(self.syrup_pump_pin, GPIO.LOW)
+            GPIO.output(self.bitters_pump_pin, GPIO.LOW)
+            # Ensure all used pins are set to LOW
+            GPIO.output(self.enable_pin, GPIO.LOW)
+            GPIO.output(self.direction_pin, GPIO.LOW)
+            GPIO.output(self.step_pin, GPIO.LOW)
+            # Use GPIO.cleanup() without arguments to clean up all pins
             GPIO.cleanup()
-            logger.info("Motor controller cleanup completed")
+            logger.info("Motor controller and pump cleanup completed")
 
     def _move_steps(self, steps, speed):
         direction = GPIO.HIGH if steps > 0 else GPIO.LOW
@@ -314,12 +334,30 @@ class MotorController:
         while self.running:
             time.sleep(0.1)
 
-        logger.info(f"Reached position for {ingredient}, simulating pour")
-        # Simulate pouring (you might want to add actual pouring logic here)
-        time.sleep(2)
+        logger.info(f"Reached position for {ingredient}, activating pump")
+        
+        # Activate the appropriate pump
+        pump_pin = self._get_pump_pin(ingredient)
+        if pump_pin:
+            GPIO.output(pump_pin, GPIO.HIGH)
+            time.sleep(2)  # Run pump for 2 seconds (adjust as needed)
+            GPIO.output(pump_pin, GPIO.LOW)
+        else:
+            logger.error(f"No pump associated with ingredient: {ingredient}")
+            return {"status": "error", "message": f"No pump for {ingredient}"}
 
         logger.info(f"Pour sequence completed for {ingredient}")
         return {"status": "success", "message": f"Poured {ingredient}"}
+
+    def _get_pump_pin(self, ingredient):
+        if ingredient == 'whiskey':
+            return self.whiskey_pump_pin
+        elif ingredient == 'syrup':
+            return self.syrup_pump_pin
+        elif ingredient == 'bitters':
+            return self.bitters_pump_pin
+        else:
+            return None
 
     def activate(self):
         self.is_activated = True

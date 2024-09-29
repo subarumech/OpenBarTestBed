@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, render_template, g
 from flask_socketio import SocketIO
-from motor_controller import MotorController  # Remove 'app.' from here
+from motor_controller import MotorController  # Change this line
 import logging
 import atexit
 import signal
@@ -171,9 +171,19 @@ def cleanup():
     if not cleanup_done:
         cleanup_done = True
         motor_controller.cleanup()
-        logger.info("Application cleanup completed")
+        # Additional cleanup for GPIO pins
+        import RPi.GPIO as GPIO
+        GPIO.setmode(GPIO.BCM)
+        for pin in [23, 24, 25]:  # whiskey_pump_pin, syrup_pump_pin, bitters_pump_pin
+            GPIO.setup(pin, GPIO.OUT)
+            GPIO.output(pin, GPIO.LOW)
+        GPIO.cleanup()
+        logger.info("Application cleanup completed, all pump pins set to LOW")
 
+# Register the cleanup function to be called on exit
 atexit.register(cleanup)
+
+# Register the cleanup function for SIGTERM and SIGINT signals
 signal.signal(signal.SIGTERM, lambda signum, frame: cleanup())
 signal.signal(signal.SIGINT, lambda signum, frame: cleanup())
 
@@ -189,5 +199,7 @@ if __name__ == '__main__':
     logger.info("Starting Flask application with integrated motor control")
     try:
         socketio.run(app, host='0.0.0.0', port=6900, debug=True)
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
     finally:
         cleanup()
