@@ -34,7 +34,7 @@ class MotorController:
 
         # Motor configuration
         self.steps_per_revolution = 200
-        self.microstep = 2
+        self.microstep = 8
 
         self.pour_positions = {
             'whiskey': 1750,
@@ -42,9 +42,9 @@ class MotorController:
             'bitters': 3250
         }
 
-        self.acceleration = 3000  # Increase acceleration for faster ramp-up
-        self.min_speed = 200  # Increase minimum speed to avoid squealing
-        self.max_speed = 1500  # Maximum speed in steps/second
+        self.acceleration = 2000
+        self.min_speed = 400
+        self.max_speed = 4000
         self.current_speed = self.min_speed
         self.target_speed = self.min_speed
 
@@ -204,7 +204,7 @@ class MotorController:
 
     def _home_sequence(self):
         homing_speed = 50  # Adjust this value to set homing speed
-        back_off_steps = 50  # Number of steps to back off after hitting the limit switch
+        back_off_steps = 500  # Increased from 50 to 200 steps to back off further
 
         # Move towards limit switch
         while self.running and not self.limit_switch_triggered:
@@ -219,7 +219,7 @@ class MotorController:
                 break
 
         if self.limit_switch_triggered:
-            # Back off from limit switch
+            # Back off from limit switch - now moves 200 steps instead of 50
             GPIO.output(self.direction_pin, GPIO.HIGH)  # Reverse direction
             for _ in range(back_off_steps):
                 GPIO.output(self.step_pin, GPIO.HIGH)
@@ -263,7 +263,8 @@ class MotorController:
             logger.info("Motor controller and pump cleanup completed")
 
     def _move_steps(self, steps, speed):
-        direction = GPIO.HIGH if steps > 0 else GPIO.LOW
+        # Reverse the direction logic here
+        direction = GPIO.LOW if steps > 0 else GPIO.HIGH  # Swapped HIGH/LOW
         GPIO.output(self.direction_pin, direction)
 
         remaining_steps = abs(steps)
